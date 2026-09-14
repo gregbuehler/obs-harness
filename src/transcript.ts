@@ -46,7 +46,7 @@ interface AssistantRender {
 }
 
 /** Flatten pi's content-block arrays into display text. */
-function extractText(content: unknown): string {
+export function extractText(content: unknown): string {
   if (typeof content === "string") return content;
   if (!Array.isArray(content)) return "";
   const parts: string[] = [];
@@ -69,8 +69,12 @@ function prettyJson(value: unknown): string {
   }
 }
 
-/** One-line argument preview for a collapsed tool row. */
-function summarizeArgs(args: unknown): string {
+/**
+ * Argument preview for a tool row. Intentionally not truncated: CSS clamps the
+ * collapsed row to two lines and reveals the rest when expanded, so clipping
+ * here would destroy information the user could otherwise read.
+ */
+export function summarizeArgs(args: unknown): string {
   if (!isRecord(args)) return "";
   for (const key of [
     "command",
@@ -83,11 +87,28 @@ function summarizeArgs(args: unknown): string {
   ]) {
     const value = args[key];
     if (typeof value === "string" && value.length > 0) {
-      return value.length > 120 ? `${value.slice(0, 117)}…` : value;
+      // Collapse newlines so a heredoc does not blow the row open.
+      return value.replace(/\s*\n\s*/g, " ⏎ ");
     }
   }
   const keys = Object.keys(args);
   return keys.length > 0 ? keys.join(", ") : "";
+}
+
+/**
+ * Body text for a tool's argument block. A lone dominant string argument (a
+ * shell command, a file path) reads far better raw than wrapped in JSON.
+ */
+export function formatArgsBody(args: unknown): string {
+  if (typeof args === "string") return args;
+  if (!isRecord(args)) return prettyJson(args);
+  const keys = Object.keys(args);
+  if (keys.length === 1) {
+    const only = keys[0];
+    const value = only === undefined ? undefined : args[only];
+    if (typeof value === "string") return value;
+  }
+  return prettyJson(args);
 }
 
 export class Transcript {
@@ -441,7 +462,9 @@ export class Transcript {
     if (statusEl) statusEl.setText("queued");
 
     block.bodyEl.removeClass("oh-stream");
-    block.bodyEl.setText(prettyJson(args ?? block.buffer));
+    block.bodyEl.setText(
+      args === undefined ? block.buffer : formatArgsBody(args),
+    );
     block.toolCallId = toolCallId;
 
     if (toolCallId && labelEl && statusEl) {
@@ -485,7 +508,7 @@ export class Transcript {
     const statusEl = summary.createSpan({ cls: "oh-tool__status", text: "…" });
     const argsEl = details.createEl("pre", {
       cls: "oh-tool__args",
-      text: prettyJson(args),
+      text: formatArgsBody(args),
     });
     const resultEl = details.createEl("pre", { cls: "oh-tool__result" });
 
@@ -704,8 +727,16 @@ export class Transcript {
           );
           break;
         }
-        default:
+        default: {
+          // Extensions can persist `custom` (and future) roles. Dropping them
+          // silently makes a reattached transcript disagree with the live one,
+          // so surface them as a labelled row rather than nothing.
+          const role =
+            typeof message.role === "string" ? message.role : "unknown";
+          const text = extractText(message.content);
+          this.system(text ? `[${role}] ${text}` : `[${role}] message`, "info");
           break;
+        }
       }
     }
 
@@ -788,11 +819,14 @@ export class Transcript {
   }
 }
 
-function describeAnswer(payload: Record<string, unknown>): string {
+/**
+ * Label for an answered dialog card. Not truncated — the whole point of the
+ * card is to record what was chosen, and the CSS lets it wrap.
+ */
+export function describeAnswer(payload: Record<string, unknown>): string {
   if (payload.cancelled === true) return "cancelled";
   const value = payload.value;
   if (typeof value === "boolean") return value ? "yes" : "no";
-  if (typeof value === "string")
-    return value.length > 60 ? `${value.slice(0, 57)}…` : value;
+  if (typeof value === "string") return value;
   return "answered";
 }

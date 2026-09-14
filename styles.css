@@ -109,9 +109,19 @@
  color: var(--text-faint);
 }
 
+/* Runs of assistant messages are common (pi emits a message per thinking
+   block), so only the first in a run carries the role label. Without this the
+   panel fills with repeated "PI" headers above collapsed rows. */
+.obs-harness .oh-msg--assistant + .oh-msg--assistant > .oh-msg__role {
+ display: none;
+}
+
 .obs-harness .oh-msg__body {
  min-width: 0;
  overflow-wrap: anywhere;
+ /* Normal, not tight: this is the main prose surface and the complaint was
+    readability, so err toward looser leading. */
+ line-height: var(--line-height-normal);
 }
 
 .obs-harness .oh-msg__body > :first-child {
@@ -175,7 +185,15 @@
 
 .obs-harness .oh-thinking__body {
  padding-top: var(--size-2-1);
- font-style: italic;
+ /* Not italic: long italic runs at a small size are the least readable
+    combination in the panel, and thinking is often the longest text here. */
+ font-size: var(--font-ui-small);
+ line-height: 1.5;
+ color: var(--text-muted);
+ white-space: pre-wrap;
+ overflow-wrap: anywhere;
+ max-height: 400px;
+ overflow-y: auto;
 }
 
 /* ------------------------------------------------------------------ tools */
@@ -198,7 +216,9 @@
 
 .obs-harness .oh-tool__summary {
  display: flex;
- align-items: center;
+ /* Top-aligned so a wrapped label does not drag the icon and status to the
+    vertical centre of a two-line row. */
+ align-items: flex-start;
  gap: var(--size-2-2);
  padding: var(--size-2-1) var(--size-2-2);
  cursor: pointer;
@@ -209,6 +229,8 @@
  display: inline-flex;
  color: var(--text-muted);
  flex: 0 0 auto;
+ /* Nudge onto the first text line. */
+ margin-top: 2px;
 }
 
 .obs-harness .oh-tool__icon .svg-icon {
@@ -216,14 +238,29 @@
  height: 14px;
 }
 
+/* Collapsed rows clamp to two lines instead of ellipsising a single line.
+   Absolute vault paths are long, so a one-line ellipsis hid the part that
+   actually identifies the call. Expanding reveals the whole thing. */
 .obs-harness .oh-tool__label {
  font-family: var(--font-monospace);
  color: var(--text-normal);
- white-space: nowrap;
+ display: -webkit-box;
+ -webkit-box-orient: vertical;
+ -webkit-line-clamp: 2;
+ line-clamp: 2;
  overflow: hidden;
- text-overflow: ellipsis;
+ white-space: normal;
+ overflow-wrap: anywhere;
+ line-height: 1.4;
  flex: 1 1 auto;
  min-width: 0;
+}
+
+.obs-harness .oh-tool[open] .oh-tool__label {
+ display: block;
+ -webkit-line-clamp: unset;
+ line-clamp: unset;
+ overflow: visible;
 }
 
 .obs-harness .oh-tool__preview {
@@ -234,6 +271,8 @@
 .obs-harness .oh-tool__status {
  color: var(--text-faint);
  flex: 0 0 auto;
+ /* Match the label's first-line baseline. */
+ line-height: 1.4;
 }
 
 .obs-harness .oh-tool.is-running .oh-tool__status {
@@ -251,11 +290,19 @@
  border-top: 1px solid var(--background-modifier-border);
  background-color: var(--background-primary);
  font-family: var(--font-monospace);
- font-size: var(--font-smallest);
+ /* Was --font-smallest, which is genuinely hard to read in a sidebar. */
+ font-size: var(--font-ui-smaller);
+ line-height: 1.45;
  white-space: pre-wrap;
  word-break: break-word;
- max-height: 320px;
+ max-height: 280px;
  overflow: auto;
+}
+
+/* The args block repeats the collapsed row's preview; de-emphasise it so the
+   result (what you actually want after the fact) reads as primary. */
+.obs-harness .oh-tool__args {
+ color: var(--text-muted);
 }
 
 .obs-harness .oh-tool__result:empty {
@@ -276,11 +323,15 @@
 
 .obs-harness .oh-dialog.is-answered {
  border-color: var(--background-modifier-border);
- opacity: 0.7;
+ /* Was 0.7, which made the recorded answer hard to read. Dimming the border
+    is enough to signal "resolved". */
+ opacity: 1;
+ background-color: var(--background-primary-alt);
 }
 
 .obs-harness .oh-dialog__title {
  font-weight: var(--font-semibold);
+ overflow-wrap: anywhere;
 }
 
 .obs-harness .oh-dialog__actions {
@@ -298,9 +349,13 @@
  font-size: var(--font-ui-smaller);
 }
 
+/* Full answer text, wrapped. Truncating this defeated the card's purpose:
+   recording which option was chosen. */
 .obs-harness .oh-dialog__answered {
- color: var(--text-muted);
+ color: var(--text-normal);
  font-size: var(--font-ui-smaller);
+ overflow-wrap: anywhere;
+ white-space: pre-wrap;
 }
 
 .obs-harness .oh-dialog__button {

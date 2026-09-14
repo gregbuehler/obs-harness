@@ -144,7 +144,10 @@ export class HarnessView extends ItemView {
       cls: "oh-composer__input",
       attr: {
         rows: "3",
-        placeholder: "Ask pi…  (Enter to send, Shift+Enter for newline)",
+        // Short placeholder: the long form clipped in a narrow sidebar. The
+        // key hint lives in the tooltip instead.
+        placeholder: "Ask pi…",
+        title: "Enter to send · Shift+Enter for a newline · Esc to stop",
       },
     });
     this.inputEl = input;
