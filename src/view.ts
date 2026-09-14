@@ -455,7 +455,8 @@ export class HarnessView extends ItemView {
     const menu = new Menu();
     for (const model of this.availableModels) {
       const id = typeof model.id === "string" ? model.id : null;
-      const provider = typeof model.provider === "string" ? model.provider : null;
+      const provider =
+        typeof model.provider === "string" ? model.provider : null;
       if (!id || !provider) continue;
       const name = typeof model.name === "string" ? model.name : id;
       menu.addItem((item) => {

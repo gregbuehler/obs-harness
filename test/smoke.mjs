@@ -280,7 +280,10 @@ try {
       5000,
       `${phantom} rejection`,
     );
-    check(`phantom '${phantom}' rejected`, /not allowed/.test(rejected.message));
+    check(
+      `phantom '${phantom}' rejected`,
+      /not allowed/.test(rejected.message),
+    );
   }
 
   // Newly allowlisted and relied on by "insert pi's last response into a note".

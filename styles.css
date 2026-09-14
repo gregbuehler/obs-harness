@@ -2,510 +2,510 @@
    Obsidian's CSS variables so the panel follows the active theme. */
 
 .obs-harness {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  padding: 0;
-  overflow: hidden;
+ display: flex;
+ flex-direction: column;
+ height: 100%;
+ padding: 0;
+ overflow: hidden;
 }
 
 /* ---------------------------------------------------------------- toolbar */
 
 .obs-harness .oh-toolbar {
-  display: flex;
-  align-items: center;
-  gap: var(--size-2-2);
-  padding: var(--size-2-2) var(--size-4-2);
-  border-bottom: 1px solid var(--background-modifier-border);
-  flex: 0 0 auto;
-  font-size: var(--font-ui-smaller);
+ display: flex;
+ align-items: center;
+ gap: var(--size-2-2);
+ padding: var(--size-2-2) var(--size-4-2);
+ border-bottom: 1px solid var(--background-modifier-border);
+ flex: 0 0 auto;
+ font-size: var(--font-ui-smaller);
 }
 
 .obs-harness .oh-toolbar__spacer {
-  flex: 1 1 auto;
+ flex: 1 1 auto;
 }
 
 .obs-harness .oh-status {
-  display: flex;
-  align-items: center;
-  gap: var(--size-2-2);
-  color: var(--text-muted);
-  min-width: 0;
+ display: flex;
+ align-items: center;
+ gap: var(--size-2-2);
+ color: var(--text-muted);
+ min-width: 0;
 }
 
 .obs-harness .oh-status__text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+ white-space: nowrap;
+ overflow: hidden;
+ text-overflow: ellipsis;
 }
 
 .obs-harness .oh-status__dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: var(--text-faint);
-  flex: 0 0 auto;
+ width: 8px;
+ height: 8px;
+ border-radius: 50%;
+ background-color: var(--text-faint);
+ flex: 0 0 auto;
 }
 
 .obs-harness .oh-status__dot.is-ok {
-  background-color: var(--color-green);
+ background-color: var(--color-green);
 }
 
 .obs-harness .oh-status__dot.is-warn {
-  background-color: var(--color-yellow);
+ background-color: var(--color-yellow);
 }
 
 .obs-harness .oh-status__dot.is-error {
-  background-color: var(--color-red);
+ background-color: var(--color-red);
 }
 
 .obs-harness .oh-queue {
-  color: var(--text-muted);
-  font-size: var(--font-ui-smaller);
+ color: var(--text-muted);
+ font-size: var(--font-ui-smaller);
 }
 
 .obs-harness .oh-icon-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--size-2-1);
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-s);
-  box-shadow: none;
-  color: var(--text-muted);
-  cursor: pointer;
+ display: inline-flex;
+ align-items: center;
+ justify-content: center;
+ padding: var(--size-2-1);
+ background: transparent;
+ border: none;
+ border-radius: var(--radius-s);
+ box-shadow: none;
+ color: var(--text-muted);
+ cursor: pointer;
 }
 
 .obs-harness .oh-icon-button:hover {
-  background-color: var(--background-modifier-hover);
-  color: var(--text-normal);
+ background-color: var(--background-modifier-hover);
+ color: var(--text-normal);
 }
 
 /* ------------------------------------------------------------- transcript */
 
 .obs-harness .oh-transcript {
-  flex: 1 1 auto;
-  overflow-y: auto;
-  padding: var(--size-4-3) var(--size-4-2);
-  display: flex;
-  flex-direction: column;
-  gap: var(--size-4-2);
-  /* Prevent long tool output from widening the sidebar. */
-  min-width: 0;
+ flex: 1 1 auto;
+ overflow-y: auto;
+ padding: var(--size-4-3) var(--size-4-2);
+ display: flex;
+ flex-direction: column;
+ gap: var(--size-4-2);
+ /* Prevent long tool output from widening the sidebar. */
+ min-width: 0;
 }
 
 .obs-harness .oh-msg {
-  display: flex;
-  flex-direction: column;
-  gap: var(--size-2-1);
-  min-width: 0;
+ display: flex;
+ flex-direction: column;
+ gap: var(--size-2-1);
+ min-width: 0;
 }
 
 .obs-harness .oh-msg__role {
-  font-size: var(--font-ui-smaller);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-faint);
+ font-size: var(--font-ui-smaller);
+ text-transform: uppercase;
+ letter-spacing: 0.06em;
+ color: var(--text-faint);
 }
 
 /* ----------------------------------------------------------- empty state */
 
 .obs-harness .oh-empty {
-  margin: auto;
-  padding: var(--size-4-4);
-  text-align: center;
-  color: var(--text-muted);
+ margin: auto;
+ padding: var(--size-4-4);
+ text-align: center;
+ color: var(--text-muted);
 }
 
 .obs-harness .oh-empty__title {
-  font-weight: var(--font-semibold);
-  margin-bottom: var(--size-2-2);
+ font-weight: var(--font-semibold);
+ margin-bottom: var(--size-2-2);
 }
 
 .obs-harness .oh-empty__hint {
-  font-size: var(--font-ui-smaller);
-  color: var(--text-faint);
-  line-height: 1.5;
+ font-size: var(--font-ui-smaller);
+ color: var(--text-faint);
+ line-height: 1.5;
 }
 
 /* ------------------------------------------------------- message header */
 
 .obs-harness .oh-msg__header {
-  display: flex;
-  align-items: center;
-  gap: var(--size-2-2);
-  min-width: 0;
+ display: flex;
+ align-items: center;
+ gap: var(--size-2-2);
+ min-width: 0;
 }
 
 .obs-harness .oh-msg__spacer {
-  flex: 1 1 auto;
+ flex: 1 1 auto;
 }
 
 .obs-harness .oh-msg__time {
-  font-size: var(--font-ui-smaller);
-  color: var(--text-faint);
-  flex: 0 0 auto;
+ font-size: var(--font-ui-smaller);
+ color: var(--text-faint);
+ flex: 0 0 auto;
 }
 
 .obs-harness .oh-transcript.is-hiding-timestamps .oh-msg__time {
-  display: none;
+ display: none;
 }
 
 /* Thinking hidden via CSS rather than by skipping the render, so toggling the
       setting applies to messages already on screen. */
 .obs-harness .oh-transcript.is-hiding-thinking .oh-thinking {
-  display: none;
+ display: none;
 }
 
 /* Actions stay hidden until hover/focus so they do not add visual noise to
       every row, but remain keyboard reachable. */
 .obs-harness .oh-msg__actions {
-  display: flex;
-  gap: var(--size-2-1);
-  flex: 0 0 auto;
-  opacity: 0;
-  transition: opacity 120ms ease-in-out;
+ display: flex;
+ gap: var(--size-2-1);
+ flex: 0 0 auto;
+ opacity: 0;
+ transition: opacity 120ms ease-in-out;
 }
 
 .obs-harness .oh-msg:hover .oh-msg__actions,
 .obs-harness .oh-msg__actions:focus-within {
-  opacity: 1;
+ opacity: 1;
 }
 
 .obs-harness .oh-msg__action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2px;
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  border-radius: var(--radius-s);
-  color: var(--text-faint);
-  cursor: pointer;
+ display: inline-flex;
+ align-items: center;
+ justify-content: center;
+ padding: 2px;
+ background: transparent;
+ border: none;
+ box-shadow: none;
+ border-radius: var(--radius-s);
+ color: var(--text-faint);
+ cursor: pointer;
 }
 
 .obs-harness .oh-msg__action:hover {
-  background-color: var(--background-modifier-hover);
-  color: var(--text-normal);
+ background-color: var(--background-modifier-hover);
+ color: var(--text-normal);
 }
 
 .obs-harness .oh-msg__action .svg-icon {
-  width: 14px;
-  height: 14px;
+ width: 14px;
+ height: 14px;
 }
 
 .obs-harness .oh-msg__body {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  /* Normal, not tight: this is the main prose surface and the complaint was
+ min-width: 0;
+ overflow-wrap: anywhere;
+ /* Normal, not tight: this is the main prose surface and the complaint was
         readability, so err toward looser leading. */
-  line-height: var(--line-height-normal);
+ line-height: var(--line-height-normal);
 }
 
 .obs-harness .oh-msg__body > :first-child {
-  margin-top: 0;
+ margin-top: 0;
 }
 
 .obs-harness .oh-msg__body > :last-child {
-  margin-bottom: 0;
+ margin-bottom: 0;
 }
 
 .obs-harness .oh-msg--user {
-  padding: var(--size-2-2) var(--size-4-2);
-  background-color: var(--background-secondary);
-  border-radius: var(--radius-m);
-  border-left: 2px solid var(--interactive-accent);
+ padding: var(--size-2-2) var(--size-4-2);
+ background-color: var(--background-secondary);
+ border-radius: var(--radius-m);
+ border-left: 2px solid var(--interactive-accent);
 }
 
 /* Plain-text streaming surface, swapped for rendered markdown when complete. */
 .obs-harness .oh-stream {
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-family: inherit;
-  margin: 0;
+ white-space: pre-wrap;
+ word-break: break-word;
+ font-family: inherit;
+ margin: 0;
 }
 
 /* ---------------------------------------------------------------- system */
 
 .obs-harness .oh-system {
-  font-size: var(--font-ui-smaller);
-  color: var(--text-muted);
-  padding: var(--size-2-1) var(--size-2-2);
-  border-left: 2px solid var(--background-modifier-border);
+ font-size: var(--font-ui-smaller);
+ color: var(--text-muted);
+ padding: var(--size-2-1) var(--size-2-2);
+ border-left: 2px solid var(--background-modifier-border);
 }
 
 .obs-harness .oh-system--warn {
-  color: var(--text-warning);
-  border-left-color: var(--color-yellow);
+ color: var(--text-warning);
+ border-left-color: var(--color-yellow);
 }
 
 .obs-harness .oh-system--error {
-  color: var(--text-error);
-  border-left-color: var(--color-red);
+ color: var(--text-error);
+ border-left-color: var(--color-red);
 }
 
 /* --------------------------------------------------------------- thinking */
 
 .obs-harness .oh-thinking {
-  border-left: 2px solid var(--background-modifier-border);
-  padding-left: var(--size-4-2);
-  color: var(--text-muted);
-  font-size: var(--font-ui-smaller);
+ border-left: 2px solid var(--background-modifier-border);
+ padding-left: var(--size-4-2);
+ color: var(--text-muted);
+ font-size: var(--font-ui-smaller);
 }
 
 .obs-harness .oh-thinking > summary {
-  cursor: pointer;
-  color: var(--text-faint);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: var(--font-ui-smaller);
+ cursor: pointer;
+ color: var(--text-faint);
+ text-transform: uppercase;
+ letter-spacing: 0.06em;
+ font-size: var(--font-ui-smaller);
 }
 
 .obs-harness .oh-thinking__body {
-  padding-top: var(--size-2-1);
-  /* Not italic: long italic runs at a small size are the least readable
+ padding-top: var(--size-2-1);
+ /* Not italic: long italic runs at a small size are the least readable
     combination in the panel, and thinking is often the longest text here. */
-  font-size: var(--font-ui-small);
-  line-height: 1.5;
-  color: var(--text-muted);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  max-height: 400px;
-  overflow-y: auto;
+ font-size: var(--font-ui-small);
+ line-height: 1.5;
+ color: var(--text-muted);
+ white-space: pre-wrap;
+ overflow-wrap: anywhere;
+ max-height: 400px;
+ overflow-y: auto;
 }
 
 /* ------------------------------------------------------------------ tools */
 
 .obs-harness .oh-tool {
-  border: 1px solid var(--background-modifier-border);
-  border-radius: var(--radius-s);
-  background-color: var(--background-primary-alt);
-  font-size: var(--font-ui-smaller);
-  min-width: 0;
+ border: 1px solid var(--background-modifier-border);
+ border-radius: var(--radius-s);
+ background-color: var(--background-primary-alt);
+ font-size: var(--font-ui-smaller);
+ min-width: 0;
 }
 
 .obs-harness .oh-tool.is-running {
-  border-color: var(--color-yellow);
+ border-color: var(--color-yellow);
 }
 
 .obs-harness .oh-tool.is-error {
-  border-color: var(--color-red);
+ border-color: var(--color-red);
 }
 
 .obs-harness .oh-tool__summary {
-  display: flex;
-  /* Top-aligned so a wrapped label does not drag the icon and status to the
+ display: flex;
+ /* Top-aligned so a wrapped label does not drag the icon and status to the
     vertical centre of a two-line row. */
-  align-items: flex-start;
-  gap: var(--size-2-2);
-  padding: var(--size-2-1) var(--size-2-2);
-  cursor: pointer;
-  min-width: 0;
+ align-items: flex-start;
+ gap: var(--size-2-2);
+ padding: var(--size-2-1) var(--size-2-2);
+ cursor: pointer;
+ min-width: 0;
 }
 
 .obs-harness .oh-tool__icon {
-  display: inline-flex;
-  color: var(--text-muted);
-  flex: 0 0 auto;
-  /* Nudge onto the first text line. */
-  margin-top: 2px;
+ display: inline-flex;
+ color: var(--text-muted);
+ flex: 0 0 auto;
+ /* Nudge onto the first text line. */
+ margin-top: 2px;
 }
 
 .obs-harness .oh-tool__icon .svg-icon {
-  width: 14px;
-  height: 14px;
+ width: 14px;
+ height: 14px;
 }
 
 /* Collapsed rows clamp to two lines instead of ellipsising a single line.
    Absolute vault paths are long, so a one-line ellipsis hid the part that
    actually identifies the call. Expanding reveals the whole thing. */
 .obs-harness .oh-tool__label {
-  font-family: var(--font-monospace);
-  color: var(--text-normal);
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow: hidden;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  line-height: 1.4;
-  flex: 1 1 auto;
-  min-width: 0;
+ font-family: var(--font-monospace);
+ color: var(--text-normal);
+ display: -webkit-box;
+ -webkit-box-orient: vertical;
+ -webkit-line-clamp: 2;
+ line-clamp: 2;
+ overflow: hidden;
+ white-space: normal;
+ overflow-wrap: anywhere;
+ line-height: 1.4;
+ flex: 1 1 auto;
+ min-width: 0;
 }
 
 .obs-harness .oh-tool[open] .oh-tool__label {
-  display: block;
-  -webkit-line-clamp: unset;
-  line-clamp: unset;
-  overflow: visible;
+ display: block;
+ -webkit-line-clamp: unset;
+ line-clamp: unset;
+ overflow: visible;
 }
 
 .obs-harness .oh-tool__preview {
-  color: var(--text-faint);
-  font-weight: normal;
+ color: var(--text-faint);
+ font-weight: normal;
 }
 
 .obs-harness .oh-tool__status {
-  color: var(--text-faint);
-  flex: 0 0 auto;
-  /* Match the label's first-line baseline. */
-  line-height: 1.4;
+ color: var(--text-faint);
+ flex: 0 0 auto;
+ /* Match the label's first-line baseline. */
+ line-height: 1.4;
 }
 
 .obs-harness .oh-tool.is-running .oh-tool__status {
-  color: var(--color-yellow);
+ color: var(--color-yellow);
 }
 
 .obs-harness .oh-tool.is-error .oh-tool__status {
-  color: var(--color-red);
+ color: var(--color-red);
 }
 
 .obs-harness .oh-tool__args,
 .obs-harness .oh-tool__result {
-  margin: 0;
-  padding: var(--size-2-2);
-  border-top: 1px solid var(--background-modifier-border);
-  background-color: var(--background-primary);
-  font-family: var(--font-monospace);
-  /* Was --font-smallest, which is genuinely hard to read in a sidebar. */
-  font-size: var(--font-ui-smaller);
-  line-height: 1.45;
-  white-space: pre-wrap;
-  word-break: break-word;
-  max-height: 280px;
-  overflow: auto;
+ margin: 0;
+ padding: var(--size-2-2);
+ border-top: 1px solid var(--background-modifier-border);
+ background-color: var(--background-primary);
+ font-family: var(--font-monospace);
+ /* Was --font-smallest, which is genuinely hard to read in a sidebar. */
+ font-size: var(--font-ui-smaller);
+ line-height: 1.45;
+ white-space: pre-wrap;
+ word-break: break-word;
+ max-height: 280px;
+ overflow: auto;
 }
 
 /* The args block repeats the collapsed row's preview; de-emphasise it so the
    result (what you actually want after the fact) reads as primary. */
 .obs-harness .oh-tool__args {
-  color: var(--text-muted);
+ color: var(--text-muted);
 }
 
 .obs-harness .oh-tool__result:empty {
-  display: none;
+ display: none;
 }
 
 /* ---------------------------------------------------------------- dialogs */
 
 .obs-harness .oh-dialog {
-  border: 1px solid var(--color-accent);
-  border-radius: var(--radius-m);
-  padding: var(--size-4-2);
-  background-color: var(--background-secondary);
-  display: flex;
-  flex-direction: column;
-  gap: var(--size-2-2);
+ border: 1px solid var(--color-accent);
+ border-radius: var(--radius-m);
+ padding: var(--size-4-2);
+ background-color: var(--background-secondary);
+ display: flex;
+ flex-direction: column;
+ gap: var(--size-2-2);
 }
 
 .obs-harness .oh-dialog.is-answered {
-  border-color: var(--background-modifier-border);
-  /* Was 0.7, which made the recorded answer hard to read. Dimming the border
+ border-color: var(--background-modifier-border);
+ /* Was 0.7, which made the recorded answer hard to read. Dimming the border
     is enough to signal "resolved". */
-  opacity: 1;
-  background-color: var(--background-primary-alt);
+ opacity: 1;
+ background-color: var(--background-primary-alt);
 }
 
 .obs-harness .oh-dialog__title {
-  font-weight: var(--font-semibold);
-  overflow-wrap: anywhere;
+ font-weight: var(--font-semibold);
+ overflow-wrap: anywhere;
 }
 
 .obs-harness .oh-dialog__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--size-2-2);
-  align-items: center;
+ display: flex;
+ flex-wrap: wrap;
+ gap: var(--size-2-2);
+ align-items: center;
 }
 
 .obs-harness .oh-dialog__input {
-  width: 100%;
-  min-height: 60px;
-  resize: vertical;
-  font-family: var(--font-monospace);
-  font-size: var(--font-ui-smaller);
+ width: 100%;
+ min-height: 60px;
+ resize: vertical;
+ font-family: var(--font-monospace);
+ font-size: var(--font-ui-smaller);
 }
 
 /* Full answer text, wrapped. Truncating this defeated the card's purpose:
    recording which option was chosen. */
 .obs-harness .oh-dialog__answered {
-  color: var(--text-normal);
-  font-size: var(--font-ui-smaller);
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
+ color: var(--text-normal);
+ font-size: var(--font-ui-smaller);
+ overflow-wrap: anywhere;
+ white-space: pre-wrap;
 }
 
 .obs-harness .oh-dialog__button {
-  cursor: pointer;
+ cursor: pointer;
 }
 
 .obs-harness .oh-dialog__button.mod-muted {
-  background-color: transparent;
-  color: var(--text-muted);
-  box-shadow: none;
+ background-color: transparent;
+ color: var(--text-muted);
+ box-shadow: none;
 }
 
 /* --------------------------------------------------------------- composer */
 
 .obs-harness .oh-composer {
-  flex: 0 0 auto;
-  border-top: 1px solid var(--background-modifier-border);
-  padding: var(--size-2-2) var(--size-4-2) var(--size-4-2);
-  display: flex;
-  flex-direction: column;
-  gap: var(--size-2-2);
-  background-color: var(--background-primary);
+ flex: 0 0 auto;
+ border-top: 1px solid var(--background-modifier-border);
+ padding: var(--size-2-2) var(--size-4-2) var(--size-4-2);
+ display: flex;
+ flex-direction: column;
+ gap: var(--size-2-2);
+ background-color: var(--background-primary);
 }
 
 .obs-harness .oh-composer__input {
-  width: 100%;
-  resize: none;
-  min-height: 60px;
-  max-height: 240px;
-  overflow-y: auto;
-  font-family: inherit;
-  font-size: var(--font-ui-small);
+ width: 100%;
+ resize: none;
+ min-height: 60px;
+ max-height: 240px;
+ overflow-y: auto;
+ font-family: inherit;
+ font-size: var(--font-ui-small);
 }
 
 .obs-harness .oh-composer__actions {
-  display: flex;
-  align-items: center;
-  gap: var(--size-2-2);
+ display: flex;
+ align-items: center;
+ gap: var(--size-2-2);
 }
 
 /* A dialog resolved by another panel: distinguish it from one this panel
       answered, so the recorded outcome is not mistaken for a local action. */
 .obs-harness .oh-dialog.is-remote {
-  border-style: dashed;
+ border-style: dashed;
 }
 
 .obs-harness .oh-model {
-  color: var(--text-faint);
-  font-size: var(--font-ui-smaller);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-  cursor: pointer;
-  border-radius: var(--radius-s);
-  padding: 2px var(--size-2-1);
+ color: var(--text-faint);
+ font-size: var(--font-ui-smaller);
+ white-space: nowrap;
+ overflow: hidden;
+ text-overflow: ellipsis;
+ min-width: 0;
+ cursor: pointer;
+ border-radius: var(--radius-s);
+ padding: 2px var(--size-2-1);
 }
 
 .obs-harness .oh-model:hover {
-  background-color: var(--background-modifier-hover);
-  color: var(--text-muted);
+ background-color: var(--background-modifier-hover);
+ color: var(--text-muted);
 }
 
 .obs-harness .oh-button {
-  cursor: pointer;
-  flex: 0 0 auto;
+ cursor: pointer;
+ flex: 0 0 auto;
 }
 
 /* Narrow sidebars: stack the composer controls rather than squeezing them. */
 .obs-harness .oh-transcript,
 .obs-harness .oh-composer {
-  container-type: inline-size;
+ container-type: inline-size;
 }

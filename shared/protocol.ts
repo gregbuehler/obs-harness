@@ -102,8 +102,8 @@ export interface BridgeError {
 }
 
 export interface BridgePong {
-  type: "bridge_pong";
-  id?: string;
+ type: "bridge_pong";
+ id?: string;
 }
 
 /**
@@ -112,12 +112,12 @@ export interface BridgePong {
  * live-looking buttons for a dialog pi has already moved past.
  */
 export interface BridgeDialogResolved {
-  type: "bridge_dialog_resolved";
-  /** The extension_ui_request id being retired. */
-  dialogId: string;
-  reason: "answered" | "cancelled" | "no-clients";
-  /** Short description of the answer, for the other panels to display. */
-  answer?: string;
+ type: "bridge_dialog_resolved";
+ /** The extension_ui_request id being retired. */
+ dialogId: string;
+ reason: "answered" | "cancelled" | "no-clients";
+ /** Short description of the answer, for the other panels to display. */
+ answer?: string;
 }
 
 /** Anything emitted by pi (events and command responses) passes through as-is. */

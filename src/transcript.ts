@@ -991,7 +991,10 @@ export class Transcript {
           this.options.sourcePath(),
           this.options.component,
         );
-      } else if (block.type === "thinking" && this.options.display().showThinking) {
+      } else if (
+        block.type === "thinking" &&
+        this.options.display().showThinking
+      ) {
         const stream = this.openBlock(render, index, "thinking");
         stream.bodyEl.removeClass("oh-stream");
         stream.bodyEl.setText(
