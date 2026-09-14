@@ -28,6 +28,26 @@ import { PiSession } from "./pi-session.js";
 /** Extension UI methods that block pi until the client answers. */
 const DIALOG_METHODS = new Set(["select", "confirm", "input", "editor"]);
 
+/**
+ * Short description of a dialog answer, broadcast to the panels that did not
+ * answer it.
+ *
+ * Bounded on purpose, unlike the answering panel's own card: this is a
+ * cross-panel notification rather than the authoritative record, and an
+ * `editor` dialog's value can be arbitrarily large.
+ */
+function describeDialogAnswer(
+  message: Record<string, unknown>,
+): string | undefined {
+  if (message.cancelled === true) return "cancelled";
+  const value = message.value;
+  if (typeof value === "boolean") return value ? "yes" : "no";
+  if (typeof value === "string") {
+    return value.length > 500 ? `${value.slice(0, 497)}\u2026` : value;
+  }
+  return undefined;
+}
+
 export interface HarnessServerOptions {
   port: number;
   host: string;
@@ -446,6 +466,14 @@ export class HarnessServer {
       const dialogId = typeof message.id === "string" ? message.id : null;
       if (!dialogId || !entry.pendingDialogs.delete(dialogId)) return;
       entry.session.send(message);
+      // Tell every panel the dialog is retired, so the ones that did not answer
+      // stop showing live buttons for a decision pi has already moved past.
+      this.broadcast(key, {
+        type: "bridge_dialog_resolved",
+        dialogId,
+        reason: message.cancelled === true ? "cancelled" : "answered",
+        answer: describeDialogAnswer(message),
+      });
       return;
     }
 
@@ -485,6 +513,13 @@ export class HarnessServer {
           type: "extension_ui_response",
           id: dialogId,
           cancelled: true,
+        });
+        // A panel can attach moments later and would otherwise render a card
+        // for an already-cancelled dialog.
+        this.broadcast(key, {
+          type: "bridge_dialog_resolved",
+          dialogId,
+          reason: "no-clients",
         });
         return;
       }

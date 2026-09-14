@@ -80,19 +80,43 @@ Note that Obsidian's `PATH` is usually not your shell's — set an absolute **pi
 - **Enter** sends, **Shift+Enter** inserts a newline.
 - Sending while the agent is running becomes a **steer** — pi delivers it at the next safe point rather than rejecting it.
 - **Esc** in the input, or the **Stop** button, aborts the current run.
-- Tool calls render as collapsible rows with streamed output; errors auto-expand.
-- Extension dialogs (including tool-approval prompts) render as inline cards. This matters: those dialogs *block the agent*. With no panel attached the server auto-cancels them so pi can never hang invisibly.
+- Tool calls render as collapsible rows with streamed output; errors auto-expand. Collapsed rows clamp to two lines and reveal the full label when expanded.
+- Click the model name in the composer to switch models.
+- Hover a message for **copy** and **insert into note** actions.
+- Extension dialogs (including tool-approval prompts) render as inline cards. This matters: those dialogs *block the agent*. With no panel attached the server auto-cancels them so pi can never hang invisibly, and a dialog answered in one panel is retired in all the others.
 
 Working directory defaults to the vault root and doubles as the session key — one agent per vault, shared by every panel.
+
+### Vault integration
+
+These are the reason to embed the agent rather than use a terminal:
+
+| Command | Effect |
+| --- | --- |
+| Ask pi about the active note | Prefills the composer with the note's vault-relative path, which is directly readable by pi since the vault root is its working directory. |
+| Ask pi about the selection | Same, plus the selected text in a fence sized to survive backticks inside it. |
+| Insert pi's last response into the note | Fetches the reply via `get_last_assistant_text` and inserts at the cursor. |
+
+Without the first two, asking about "this document" makes pi hunt the filesystem or stop to ask which file you meant — a round trip the panel can eliminate, since it already knows.
+
+Insertion targets the most recently focused editor rather than the "active" one, because clicking inside the panel makes the panel itself active.
 
 ## Tests
 
 ```bash
-npm test        # bridge server vs. real pi; no LLM calls, no cost
+npm test            # format checks + bridge vs. real pi; no LLM calls, no cost
+npm run test:format # pure formatting helpers only
 npm run test:live   # one real LLM turn; asserts the streaming event sequence
 ```
 
-`npm test` covers the handshake file and its permissions, token rejection at upgrade, attach/snapshot, streamed `bash` output, LF-only framing (a U+2028 round trip), session sharing across two clients, event fan-out, the command allowlist, reserved-id rejection, and handshake cleanup on `SIGTERM`.
+`npm test` covers the handshake file and its permissions, token rejection at upgrade, attach/snapshot, streamed `bash` output, LF-only framing (a U+2028 round trip), session sharing across two clients, event fan-out, the command allowlist (including that phantom commands stay out of it), reserved-id rejection, and handshake cleanup on `SIGTERM`. `test/format.mjs` guards against re-introducing silent truncation.
+
+## Notes on pi's RPC surface
+
+Two things worth knowing, both found by checking the installed build rather than the docs:
+
+- `list_sessions` and `load_session` do not exist. There is no RPC way to enumerate sessions; switching is `switch_session` with an explicit path. A session picker would have to scan pi's session directory itself.
+- `get_last_assistant_text` is typed as `data: { text: string | null }`, but when no assistant message exists the key is **omitted** (`data: {}`). Treat absent and null alike.
 
 ## Security notes
 
@@ -104,7 +128,8 @@ npm run test:live   # one real LLM turn; asserts the streaming event sequence
 ## Known gaps
 
 - No image or attachment support in the composer yet (`prompt` accepts them over RPC).
-- No model picker UI; set **Model** in settings, or use pi's own `/model` command in the prompt.
-- `list_sessions` / `load_session` are allowlisted on the bridge but have no UI.
+- No session picker: pi's RPC cannot list sessions (see above).
+- No diff view for `write`/`edit` tool calls, so pi rewriting a note shows args and a result but not what changed. Highest-value remaining item.
+- No context-window or cost meter, though `get_session_stats` is allowlisted and returns both.
 - Session history isn't virtualized, so extremely long transcripts will get heavy.
 - Desktop only, by necessity: discovery and autostart use node APIs.

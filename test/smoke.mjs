@@ -268,6 +268,40 @@ try {
     /not allowed/.test(err.message),
     err.message,
   );
+
+  // The allowlist once contained `load_session` and `list_sessions`, neither of
+  // which exists in pi's RPC vocabulary. Forwarding a phantom command wastes a
+  // round trip and yields a confusing pi-side parse error instead of a clear
+  // rejection, so assert they stay out.
+  for (const phantom of ["load_session", "list_sessions"]) {
+    a.send({ type: phantom, id: `phantom-${phantom}` });
+    const rejected = await a.waitFor(
+      (m) => m.type === "bridge_error" && m.id === `phantom-${phantom}`,
+      5000,
+      `${phantom} rejection`,
+    );
+    check(`phantom '${phantom}' rejected`, /not allowed/.test(rejected.message));
+  }
+
+  // Newly allowlisted and relied on by "insert pi's last response into a note".
+  // Note the shape: pi's rpc-types declares `data: { text: string | null }`, but
+  // with no assistant message yet the key is omitted entirely (`data: {}`), so
+  // callers must tolerate absent rather than null.
+  a.send({ type: "get_last_assistant_text", id: "last-text" });
+  const lastText = await a.waitFor(
+    (m) => m.type === "response" && m.id === "last-text",
+    15000,
+    "get_last_assistant_text response",
+  );
+  const lastTextValue = lastText.data?.text;
+  check(
+    "get_last_assistant_text forwarded",
+    lastText.success === true &&
+      (lastTextValue === undefined ||
+        lastTextValue === null ||
+        typeof lastTextValue === "string"),
+    `data=${JSON.stringify(lastText.data)}`,
+  );
   a.send({ type: "get_state", id: "__bridge:steal" });
   const reserved = await a.waitFor(
     (m) => m.type === "bridge_error" && m.id === "__bridge:steal",

@@ -9,8 +9,10 @@ import path from "node:path";
 
 import {
   FileSystemAdapter,
+  MarkdownView,
   Notice,
   Plugin,
+  type Editor,
   type WorkspaceLeaf,
 } from "obsidian";
 
@@ -21,6 +23,21 @@ import {
   type PanelLocation,
 } from "./settings.js";
 import { HarnessView, VIEW_TYPE_HARNESS } from "./view.js";
+
+/**
+ * Wrap text in a code fence long enough to survive backticks inside it.
+ *
+ * A note selection frequently contains fenced code of its own, and a bare
+ * three-backtick fence would terminate early and mangle the prompt.
+ */
+function fenceCode(text: string): string {
+  let longestRun = 0;
+  for (const match of text.matchAll(/`+/g)) {
+    longestRun = Math.max(longestRun, match[0].length);
+  }
+  const fence = "`".repeat(Math.max(3, longestRun + 1));
+  return `${fence}\n${text}\n${fence}`;
+}
 
 export default class HarnessPlugin extends Plugin {
   /** Obsidian's Plugin base class declares `settings?: unknown`; narrow it here. */
@@ -76,7 +93,82 @@ export default class HarnessPlugin extends Plugin {
       callback: () => this.reconnectAll(),
     });
 
+    this.addCommand({
+      id: "ask-about-note",
+      name: "Ask pi about the active note",
+      callback: () => {
+        void this.askAboutActiveNote({ withSelection: false });
+      },
+    });
+    this.addCommand({
+      id: "ask-about-selection",
+      name: "Ask pi about the selection",
+      editorCallback: () => {
+        void this.askAboutActiveNote({ withSelection: true });
+      },
+    });
+    this.addCommand({
+      id: "insert-last-response",
+      name: "Insert pi's last response into the note",
+      editorCallback: () => this.insertLastResponse(),
+    });
+
     this.addSettingTab(new HarnessSettingTab(this.app, this));
+  }
+
+  // -------------------------------------------------------------------------
+  // Vault integration
+  // -------------------------------------------------------------------------
+
+  /**
+   * Prefill the composer with the active note as context.
+   *
+   * This is the whole point of embedding the agent in Obsidian: without it the
+   * user types "this document" and pi has to hunt for the file (or stop and ask
+   * which one), burning turns on something the panel already knows.
+   */
+  async askAboutActiveNote(options: { withSelection: boolean }): Promise<void> {
+    const file = this.app.workspace.getActiveFile();
+    if (!file) {
+      new Notice("Pi Harness: no active note.");
+      return;
+    }
+
+    const selection = options.withSelection
+      ? (this.targetEditor()?.getSelection() ?? "")
+      : "";
+
+    const lines = [
+      // The agent's cwd is the vault root, so a vault-relative path is directly
+      // readable by pi's own tools.
+      `Context: the note \`${file.path}\`, relative to your working directory.`,
+    ];
+    if (selection.trim()) {
+      lines.push("", "Selected text:", "", fenceCode(selection));
+    }
+    lines.push("", "");
+
+    await this.openPanel();
+    const view = this.firstPanel();
+    if (!view) return;
+    view.prefillComposer(lines.join("\n"));
+  }
+
+  /** Ask the bridge for pi's last reply and insert it at the cursor. */
+  insertLastResponse(): void {
+    const view = this.firstPanel();
+    if (!view) {
+      new Notice("Pi Harness: open the harness panel first.");
+      return;
+    }
+    view.requestInsertLastResponse();
+  }
+
+  private firstPanel(): HarnessView | null {
+    for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_HARNESS)) {
+      if (leaf.view instanceof HarnessView) return leaf.view;
+    }
+    return null;
   }
 
   // Note: deliberately no detachLeavesOfType() here. Obsidian's plugin
@@ -159,6 +251,35 @@ export default class HarnessPlugin extends Plugin {
     return path.join(adapter.getBasePath(), dir);
   }
 
+  /**
+   * The markdown editor to act on for insert operations.
+   *
+   * Not `getActiveViewOfType`: clicking a button inside the harness panel makes
+   * the panel's leaf active, so the "active" markdown view is frequently null at
+   * exactly the moment the user asks to insert. `getMostRecentLeaf` ignores
+   * sidebars and returns the last real editor instead.
+   */
+  private targetEditor(): Editor | null {
+    const recent = this.app.workspace.getMostRecentLeaf();
+    if (recent?.view instanceof MarkdownView) return recent.view.editor;
+    return this.app.workspace.getActiveViewOfType(MarkdownView)?.editor ?? null;
+  }
+
+  /** Insert text at the cursor of the most recent markdown editor. */
+  insertIntoActiveNote(text: string): void {
+    if (!text.trim()) {
+      new Notice("Pi Harness: nothing to insert yet.");
+      return;
+    }
+    const editor = this.targetEditor();
+    if (!editor) {
+      new Notice("Pi Harness: open a note in edit mode to insert text.");
+      return;
+    }
+    editor.replaceSelection(text.endsWith("\n") ? text : `${text}\n`);
+    new Notice("Inserted into note.");
+  }
+
   /** Source path used to resolve links in rendered markdown. */
   activeSourcePath(): string {
     return this.app.workspace.getActiveFile()?.path ?? "";
@@ -174,5 +295,11 @@ export default class HarnessPlugin extends Plugin {
 
   async saveSettings(): Promise<void> {
     await this.saveData(this.settings);
+    // Push changes into panels that are already open. Without this, toggling a
+    // display setting appears to do nothing until the panel is reopened.
+    for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_HARNESS)) {
+      const view = leaf.view;
+      if (view instanceof HarnessView) view.applySettings();
+    }
   }
 }

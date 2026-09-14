@@ -14,12 +14,27 @@ export interface TranscriptOptions {
   /** Lifecycle owner for markdown rendering (the view). */
   component: Component;
   container: HTMLElement;
-  /** Note path used to resolve relative links in rendered markdown. */
-  sourcePath: string;
-  showThinking: boolean;
-  expandTools: boolean;
+  /**
+   * Note path used to resolve relative links and wikilinks in rendered
+   * markdown. A function, not a string: the active note changes while a panel
+   * stays open, and a value captured at construction silently resolves every
+   * later link against a stale note.
+   */
+  sourcePath: () => string;
+  /** Live display settings, re-read per render so toggles take effect at once. */
+  display: () => TranscriptDisplayOptions;
   /** Send an extension_ui_response back through the bridge. */
   onDialogResponse: (response: Record<string, unknown>) => void;
+  /** Copy text to the clipboard (host-provided so this stays DOM-only). */
+  onCopy: (text: string) => void;
+  /** Insert text into the active note. */
+  onInsertIntoNote: (text: string) => void;
+}
+
+export interface TranscriptDisplayOptions {
+  showThinking: boolean;
+  expandTools: boolean;
+  showTimestamps: boolean;
 }
 
 type BlockKind = "text" | "thinking" | "toolcall";
@@ -43,6 +58,24 @@ interface AssistantRender {
   wrapper: HTMLElement;
   contentEl: HTMLElement;
   blocks: Map<number, StreamBlock>;
+}
+
+/** A rendered blocking dialog, retained so it can be retired remotely. */
+interface DialogCard {
+  card: HTMLElement;
+  actionsEl: HTMLElement;
+  inputEl: HTMLTextAreaElement | null;
+  answered: boolean;
+}
+
+/**
+ * One assistant turn: the several assistant messages pi emits for a single
+ * response, sharing one header and one body container.
+ */
+interface AssistantGroup {
+  wrapper: HTMLElement;
+  contentEl: HTMLElement;
+  renders: AssistantRender[];
 }
 
 /** Flatten pi's content-block arrays into display text. */
@@ -115,10 +148,20 @@ export class Transcript {
   private readonly options: TranscriptOptions;
   private readonly container: HTMLElement;
   private readonly toolBlocks = new Map<string, ToolBlock>();
+  private readonly dialogCards = new Map<string, DialogCard>();
   private current: AssistantRender | null = null;
+  /** Open assistant turn, so successive messages share one header. */
+  private currentGroup: AssistantGroup | null = null;
   private stickToBottom = true;
   /** Optimistic user echoes awaiting confirmation from pi's own event. */
   private unconfirmedUserEchoes: string[] = [];
+  /**
+   * Monotonic counter for tool rows that have no toolCallId (direct RPC bash,
+   * replayed bashExecution messages). Keying those on the command text merged
+   * two runs of the same command into one row.
+   */
+  private syntheticKeys = 0;
+  private emptyStateEl: HTMLElement | null = null;
 
   constructor(options: TranscriptOptions) {
     this.options = options;
@@ -131,14 +174,54 @@ export class Transcript {
         this.container.clientHeight;
       this.stickToBottom = distance < 48;
     });
+
+    this.renderEmptyState();
   }
 
   clear(): void {
     this.container.empty();
     this.toolBlocks.clear();
+    this.dialogCards.clear();
     this.current = null;
+    this.currentGroup = null;
     this.unconfirmedUserEchoes = [];
+    this.syntheticKeys = 0;
+    this.emptyStateEl = null;
     this.stickToBottom = true;
+    this.renderEmptyState();
+  }
+
+  /** True once anything other than the placeholder has been rendered. */
+  private renderEmptyState(): void {
+    if (this.container.childElementCount > 0) return;
+    const empty = this.container.createDiv({ cls: "oh-empty" });
+    empty.createDiv({ cls: "oh-empty__title", text: "No messages yet" });
+    empty.createDiv({
+      cls: "oh-empty__hint",
+      text: "Ask a question below, or run \u201cAsk pi about the active note\u201d from the command palette.",
+    });
+    this.emptyStateEl = empty;
+  }
+
+  /** Remove the placeholder the first time real content arrives. */
+  private clearEmptyState(): void {
+    if (!this.emptyStateEl) return;
+    this.emptyStateEl.remove();
+    this.emptyStateEl = null;
+  }
+
+  /**
+   * Apply changed display settings to content already on screen. New rows read
+   * the live getter, but existing ones need explicit updating or a toggle looks
+   * like it did nothing.
+   */
+  applyDisplayOptions(): void {
+    const display = this.options.display();
+    this.container.toggleClass("is-hiding-thinking", !display.showThinking);
+    this.container.toggleClass("is-hiding-timestamps", !display.showTimestamps);
+    for (const [, block] of this.toolBlocks) {
+      block.details.open = display.expandTools;
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -146,6 +229,7 @@ export class Transcript {
   // -------------------------------------------------------------------------
 
   system(text: string, kind: "info" | "warn" | "error" = "info"): void {
+    this.clearEmptyState();
     const row = this.container.createDiv({
       cls: `oh-system oh-system--${kind}`,
     });
@@ -159,15 +243,61 @@ export class Transcript {
     this.renderUser(text);
   }
 
+  /**
+   * Populate a message header: role, timestamp, and hover actions.
+   *
+   * Takes the header element rather than creating it, so a caller can put the
+   * header in the DOM first and still pass a `getText` closure over state that
+   * only exists afterwards.
+   */
+  private buildHeader(
+    header: HTMLElement,
+    role: string,
+    getText: () => string,
+  ): void {
+    header.createSpan({ cls: "oh-msg__role", text: role });
+    header.createSpan({
+      cls: "oh-msg__time",
+      text: new Date().toLocaleTimeString(undefined, {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    });
+    header.createDiv({ cls: "oh-msg__spacer" });
+
+    const actions = header.createDiv({ cls: "oh-msg__actions" });
+    const action = (icon: string, tooltip: string, run: () => void): void => {
+      const button = actions.createEl("button", {
+        cls: "oh-msg__action",
+        attr: { "aria-label": tooltip, title: tooltip },
+      });
+      setIcon(button, icon);
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        run();
+      });
+    };
+
+    action("copy", "Copy message", () => this.options.onCopy(getText()));
+    action("between-horizontal-start", "Insert into active note", () => {
+      this.options.onInsertIntoNote(getText());
+    });
+  }
+
   private renderUser(text: string): void {
+    this.clearEmptyState();
+    // A user message ends the assistant turn.
+    this.currentGroup = null;
     const wrapper = this.container.createDiv({ cls: "oh-msg oh-msg--user" });
-    wrapper.createDiv({ cls: "oh-msg__role", text: "you" });
+    const header = wrapper.createDiv({ cls: "oh-msg__header" });
+    this.buildHeader(header, "you", () => text);
     const body = wrapper.createDiv({ cls: "oh-msg__body" });
     void MarkdownRenderer.render(
       this.options.app,
       text,
       body,
-      this.options.sourcePath,
+      this.options.sourcePath(),
       this.options.component,
     );
     this.autoScroll();
@@ -248,16 +378,60 @@ export class Transcript {
     if (role === "assistant") this.beginAssistant();
   }
 
+  /**
+   * Start (or extend) an assistant turn.
+   *
+   * pi emits a separate message per thinking block, so a single logical turn
+   * arrives as several assistant messages. They are grouped under one header
+   * instead of one header each: that removes the repeated "PI" labels, and it
+   * keeps copy/insert acting on the whole turn's prose, which usually lives in
+   * the last message of the run rather than the first.
+   */
   private beginAssistant(): AssistantRender {
+    this.clearEmptyState();
+
+    const group = this.currentGroup;
+    if (group) {
+      const render: AssistantRender = {
+        wrapper: group.wrapper,
+        contentEl: group.contentEl,
+        blocks: new Map(),
+      };
+      group.renders.push(render);
+      this.current = render;
+      this.autoScroll();
+      return render;
+    }
+
     const wrapper = this.container.createDiv({
       cls: "oh-msg oh-msg--assistant",
     });
-    wrapper.createDiv({ cls: "oh-msg__role", text: "pi" });
+    // Header goes into the DOM first for ordering, but is populated after the
+    // group exists so its actions can read the turn's text.
+    const header = wrapper.createDiv({ cls: "oh-msg__header" });
     const contentEl = wrapper.createDiv({ cls: "oh-msg__body" });
     const render: AssistantRender = { wrapper, contentEl, blocks: new Map() };
+    const newGroup = { wrapper, contentEl, renders: [render] };
+    this.currentGroup = newGroup;
+    // Copy/insert act on visible prose only: thinking and tool JSON are noise
+    // in a note.
+    this.buildHeader(header, "pi", () => this.groupProse(newGroup));
     this.current = render;
     this.autoScroll();
     return render;
+  }
+
+  /** Concatenated prose of every message in an assistant turn. */
+  private groupProse(group: AssistantGroup): string {
+    const parts: string[] = [];
+    for (const render of group.renders) {
+      for (const block of render.blocks.values()) {
+        if (block.kind === "text" && block.buffer.trim()) {
+          parts.push(block.buffer);
+        }
+      }
+    }
+    return parts.join("\n\n").trim();
   }
 
   /**
@@ -283,7 +457,7 @@ export class Transcript {
           this.options.app,
           text,
           block.bodyEl,
-          this.options.sourcePath,
+          this.options.sourcePath(),
           this.options.component,
         );
       }
@@ -322,16 +496,16 @@ export class Transcript {
         this.closeTextBlock(render, contentIndex, delta.content, "text");
         return;
       case "thinking_start":
-        if (this.options.showThinking)
+        if (this.options.display().showThinking)
           this.openBlock(render, contentIndex, "thinking");
         return;
       case "thinking_delta":
-        if (this.options.showThinking) {
+        if (this.options.display().showThinking) {
           this.appendDelta(render, contentIndex, "thinking", delta.delta);
         }
         return;
       case "thinking_end":
-        if (this.options.showThinking) {
+        if (this.options.display().showThinking) {
           this.closeTextBlock(render, contentIndex, delta.content, "thinking");
         }
         return;
@@ -367,7 +541,7 @@ export class Transcript {
     } else if (kind === "toolcall") {
       // Provisional block: the real tool id only arrives with toolcall_end.
       const details = render.contentEl.createEl("details", { cls: "oh-tool" });
-      details.open = this.options.expandTools;
+      details.open = this.options.display().expandTools;
       const summary = details.createEl("summary", { cls: "oh-tool__summary" });
       const icon = summary.createSpan({ cls: "oh-tool__icon" });
       setIcon(icon, "wrench");
@@ -425,7 +599,7 @@ export class Transcript {
       this.options.app,
       finalText,
       block.bodyEl,
-      this.options.sourcePath,
+      this.options.sourcePath(),
       this.options.component,
     );
     this.autoScroll();
@@ -494,7 +668,7 @@ export class Transcript {
 
     const host = this.current?.contentEl ?? this.container;
     const details = host.createEl("details", { cls: "oh-tool" });
-    details.open = this.options.expandTools;
+    details.open = this.options.display().expandTools;
     const summary = details.createEl("summary", { cls: "oh-tool__summary" });
     const icon = summary.createSpan({ cls: "oh-tool__icon" });
     setIcon(icon, "wrench");
@@ -562,8 +736,10 @@ export class Transcript {
 
   private onBashUpdate(event: Record<string, unknown>): void {
     if (typeof event.delta !== "string") return;
-    const id = typeof event.id === "string" ? event.id : "bash";
-    const key = `bash:${id}`;
+    // Keyed on the originating command id, which must stay stable so successive
+    // deltas accumulate into one row. Only the id-less fallback is shared.
+    const id = typeof event.id === "string" ? event.id : "unkeyed";
+    const key = `bash:rpc:${id}`;
     const block = this.ensureToolBlock(key, "bash", undefined);
     block.resultEl.setText(block.resultEl.getText() + event.delta);
     this.autoScroll();
@@ -615,15 +791,55 @@ export class Transcript {
     }
   }
 
+  /** Retire a dialog card after this panel answered it. */
+  private markDialogAnswered(id: string, answer: string): void {
+    const entry = this.dialogCards.get(id);
+    if (!entry || entry.answered) return;
+    entry.answered = true;
+    entry.card.addClass("is-answered");
+    if (entry.inputEl) entry.inputEl.disabled = true;
+    entry.actionsEl.empty();
+    entry.actionsEl.createSpan({ cls: "oh-dialog__answered", text: answer });
+    this.autoScroll();
+  }
+
+  /**
+   * Retire a dialog resolved somewhere else: another panel answered it, or the
+   * server auto-cancelled it because nothing was attached. Without this a
+   * second panel keeps offering live buttons for a decision pi has already
+   * moved past, and clicking them does nothing.
+   */
+  resolveDialogRemotely(id: string, reason: string, answer?: string): void {
+    const entry = this.dialogCards.get(id);
+    if (!entry || entry.answered) return;
+    let label: string;
+    if (reason === "no-clients") {
+      label = "cancelled \u2014 no panel was attached";
+    } else if (answer) {
+      label = `${answer} \u2014 answered in another panel`;
+    } else {
+      label = "resolved in another panel";
+    }
+    this.markDialogAnswered(id, label);
+    entry.card.addClass("is-remote");
+  }
+
   private renderDialog(
     id: string,
     title: string,
     options: string[],
     isConfirm: boolean,
   ): void {
+    this.clearEmptyState();
     const card = this.container.createDiv({ cls: "oh-dialog" });
     card.createDiv({ cls: "oh-dialog__title", text: title });
     const row = card.createDiv({ cls: "oh-dialog__actions" });
+    this.dialogCards.set(id, {
+      card,
+      actionsEl: row,
+      inputEl: null,
+      answered: false,
+    });
 
     const answer = (payload: Record<string, unknown>): void => {
       this.options.onDialogResponse({
@@ -631,12 +847,7 @@ export class Transcript {
         id,
         ...payload,
       });
-      card.addClass("is-answered");
-      row.empty();
-      row.createSpan({
-        cls: "oh-dialog__answered",
-        text: describeAnswer(payload),
-      });
+      this.markDialogAnswered(id, describeAnswer(payload));
     };
 
     for (const option of options.length > 0 ? options : ["OK"]) {
@@ -662,11 +873,18 @@ export class Transcript {
   }
 
   private renderInputDialog(id: string, title: string, initial: string): void {
+    this.clearEmptyState();
     const card = this.container.createDiv({ cls: "oh-dialog" });
     card.createDiv({ cls: "oh-dialog__title", text: title });
     const input = card.createEl("textarea", { cls: "oh-dialog__input" });
     input.value = initial;
     const row = card.createDiv({ cls: "oh-dialog__actions" });
+    this.dialogCards.set(id, {
+      card,
+      actionsEl: row,
+      inputEl: input,
+      answered: false,
+    });
 
     const answer = (payload: Record<string, unknown>): void => {
       this.options.onDialogResponse({
@@ -674,13 +892,7 @@ export class Transcript {
         id,
         ...payload,
       });
-      card.addClass("is-answered");
-      input.disabled = true;
-      row.empty();
-      row.createSpan({
-        cls: "oh-dialog__answered",
-        text: describeAnswer(payload),
-      });
+      this.markDialogAnswered(id, describeAnswer(payload));
     };
 
     const submit = row.createEl("button", {
@@ -718,9 +930,14 @@ export class Transcript {
         case "bashExecution": {
           const command =
             typeof message.command === "string" ? message.command : "";
-          const block = this.ensureToolBlock(`bash:${command}`, "bash", {
-            command,
-          });
+          // Unique per replayed message: keying on the command text merged two
+          // runs of the same command into a single row, losing the first's
+          // output.
+          const block = this.ensureToolBlock(
+            `bash:replay:${String(this.syntheticKeys++)}`,
+            "bash",
+            { command },
+          );
           block.statusEl.setText(message.exitCode === 0 ? "done" : "error");
           block.resultEl.setText(
             typeof message.output === "string" ? message.output : "",
@@ -771,10 +988,10 @@ export class Transcript {
           this.options.app,
           block.text,
           stream.bodyEl,
-          this.options.sourcePath,
+          this.options.sourcePath(),
           this.options.component,
         );
-      } else if (block.type === "thinking" && this.options.showThinking) {
+      } else if (block.type === "thinking" && this.options.display().showThinking) {
         const stream = this.openBlock(render, index, "thinking");
         stream.bodyEl.removeClass("oh-stream");
         stream.bodyEl.setText(

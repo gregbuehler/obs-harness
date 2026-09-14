@@ -4,9 +4,9 @@
  * to exist; nothing here is exercised by the assertions.
  */
 export const MarkdownRenderer = {
-  render: async () => undefined,
+ render: async () => undefined,
 };
 
 export function setIcon() {
-  /* no-op outside Obsidian */
+ /* no-op outside Obsidian */
 }

@@ -26,6 +26,8 @@ export interface HarnessSettings {
   model: string;
   /** Render assistant thinking blocks. */
   showThinking: boolean;
+  /** Show a timestamp beside each message role. */
+  showTimestamps: boolean;
   /** Expand tool call details by default instead of collapsing them. */
   expandTools: boolean;
   /** Agent working directory: the vault root, or a fixed path. */
@@ -44,6 +46,7 @@ export const DEFAULT_SETTINGS: HarnessSettings = {
   defaultLocation: "right",
   model: "",
   showThinking: true,
+  showTimestamps: true,
   expandTools: false,
   cwdMode: "vault",
   customCwd: "",
@@ -232,11 +235,23 @@ export class HarnessSettingTab extends PluginSettingTab {
           }),
       );
 
-    new Setting(containerEl).setName("Show thinking").addToggle((toggle) =>
+    new Setting(containerEl)
+      .setName("Show thinking")
+      .setDesc("Applies to open panels immediately.")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.showThinking)
+          .onChange(async (value) => {
+            this.plugin.settings.showThinking = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl).setName("Show timestamps").addToggle((toggle) =>
       toggle
-        .setValue(this.plugin.settings.showThinking)
+        .setValue(this.plugin.settings.showTimestamps)
         .onChange(async (value) => {
-          this.plugin.settings.showThinking = value;
+          this.plugin.settings.showTimestamps = value;
           await this.plugin.saveSettings();
         }),
     );

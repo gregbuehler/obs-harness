@@ -6,6 +6,7 @@
 import {
   FileSystemAdapter,
   ItemView,
+  Menu,
   Notice,
   setIcon,
   type WorkspaceLeaf,
@@ -36,6 +37,11 @@ export class HarnessView extends ItemView {
   private attachedCwd: string | null = null;
   /** Autostart is attempted at most once per panel, to avoid spawn storms. */
   private autoStartAttempted = false;
+  /** Correlates a get_last_assistant_text reply with an insert request. */
+  private pendingInsertId: string | null = null;
+  /** Cached model list for the picker, refreshed on attach. */
+  private availableModels: Record<string, unknown>[] = [];
+  private currentModelId: string | null = null;
 
   constructor(leaf: WorkspaceLeaf, plugin: HarnessPlugin) {
     super(leaf);
@@ -72,11 +78,20 @@ export class HarnessView extends ItemView {
       app: this.app,
       component: this,
       container: scroller,
-      sourcePath: this.plugin.activeSourcePath(),
-      showThinking: this.plugin.settings.showThinking,
-      expandTools: this.plugin.settings.expandTools,
+      // Live, not captured: the active note changes while the panel stays open.
+      sourcePath: () => this.plugin.activeSourcePath(),
+      display: () => ({
+        showThinking: this.plugin.settings.showThinking,
+        expandTools: this.plugin.settings.expandTools,
+        showTimestamps: this.plugin.settings.showTimestamps,
+      }),
       onDialogResponse: (response) => this.client?.send(response),
+      onCopy: (text) => {
+        void this.copyToClipboard(text);
+      },
+      onInsertIntoNote: (text) => this.plugin.insertIntoActiveNote(text),
     });
+    this.transcript.applyDisplayOptions();
 
     this.client = new BridgeClient(
       () => resolveEndpoint(this.plugin.settings),
@@ -111,6 +126,10 @@ export class HarnessView extends ItemView {
     this.statusTextEl = status.createSpan({
       cls: "oh-status__text",
       text: "connecting…",
+      // Announce connection and streaming transitions to screen readers. The
+      // transcript itself is deliberately not a live region: announcing every
+      // token delta would be unusable.
+      attr: { "aria-live": "polite", role: "status" },
     });
 
     bar.createDiv({ cls: "oh-toolbar__spacer" });
@@ -167,7 +186,14 @@ export class HarnessView extends ItemView {
     this.registerDomEvent(input, "input", () => this.autoGrow());
 
     const actions = composer.createDiv({ cls: "oh-composer__actions" });
-    this.modelEl = actions.createSpan({ cls: "oh-model", text: "—" });
+    this.modelEl = actions.createSpan({
+      cls: "oh-model",
+      text: "—",
+      attr: { title: "Click to switch model", "aria-label": "Switch model" },
+    });
+    this.registerDomEvent(this.modelEl, "click", (event: MouseEvent) => {
+      this.openModelMenu(event);
+    });
     actions.createDiv({ cls: "oh-toolbar__spacer" });
 
     const abort = actions.createEl("button", {
@@ -195,6 +221,54 @@ export class HarnessView extends ItemView {
 
   focusInput(): void {
     this.inputEl?.focus();
+  }
+
+  /** Re-apply live settings to content already rendered in this panel. */
+  applySettings(): void {
+    this.transcript?.applyDisplayOptions();
+  }
+
+  /** Prefill the composer and focus it, e.g. with active-note context. */
+  prefillComposer(text: string): void {
+    const input = this.inputEl;
+    if (!input) return;
+    const existing = input.value.trimEnd();
+    input.value = existing ? `${existing}\n\n${text}` : text;
+    this.autoGrow();
+    input.focus();
+    // Park the caret at the end so the user types after the injected context.
+    input.setSelectionRange(input.value.length, input.value.length);
+  }
+
+  /**
+   * Ask pi for its last reply, then insert it at the cursor.
+   *
+   * Uses the RPC command rather than scraping the rendered transcript, so it
+   * stays correct after a reattach rebuilt the DOM or compaction dropped
+   * earlier turns.
+   */
+  requestInsertLastResponse(): void {
+    if (!this.client?.isConnected || !this.attachedCwd) {
+      new Notice("Pi Harness: not connected to a session.");
+      return;
+    }
+    const id = `oh-insert-${String(Date.now())}`;
+    this.pendingInsertId = id;
+    this.client.send({ type: "get_last_assistant_text", id });
+  }
+
+  private async copyToClipboard(text: string): Promise<void> {
+    if (!text) {
+      new Notice("Pi Harness: nothing to copy yet.");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      new Notice("Copied to clipboard.");
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      new Notice(`Pi Harness: copy failed \u2014 ${detail}`);
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -310,6 +384,17 @@ export class HarnessView extends ItemView {
         return;
       case "bridge_pong":
         return;
+      case "bridge_dialog_resolved": {
+        const dialogId =
+          typeof message.dialogId === "string" ? message.dialogId : null;
+        const reason = typeof message.reason === "string" ? message.reason : "";
+        const answer =
+          typeof message.answer === "string" ? message.answer : undefined;
+        if (dialogId) {
+          this.transcript?.resolveDialogRemotely(dialogId, reason, answer);
+        }
+        return;
+      }
       case "response":
         this.onCommandResponse(message);
         return;
@@ -351,12 +436,46 @@ export class HarnessView extends ItemView {
 
     const state = isRecord(message.state) ? message.state : null;
     this.applyState(state);
+    // Populate the model picker so the first click is instant.
+    this.client?.send({ type: "get_available_models" });
+  }
+
+  /** Model switcher, driven by the cached get_available_models list. */
+  private openModelMenu(event: MouseEvent): void {
+    if (!this.client?.isConnected) {
+      new Notice("Pi Harness: not connected to the bridge server.");
+      return;
+    }
+    if (this.availableModels.length === 0) {
+      this.client.send({ type: "get_available_models" });
+      new Notice("Pi Harness: fetching models, try again in a moment.");
+      return;
+    }
+
+    const menu = new Menu();
+    for (const model of this.availableModels) {
+      const id = typeof model.id === "string" ? model.id : null;
+      const provider = typeof model.provider === "string" ? model.provider : null;
+      if (!id || !provider) continue;
+      const name = typeof model.name === "string" ? model.name : id;
+      menu.addItem((item) => {
+        item
+          .setTitle(`${name}  ·  ${provider}`)
+          .setChecked(id === this.currentModelId)
+          .onClick(() => {
+            this.client?.send({ type: "set_model", provider, modelId: id });
+          });
+      });
+    }
+    menu.showAtMouseEvent(event);
   }
 
   private applyState(state: Record<string, unknown> | null): void {
     if (!state) return;
     const model = isRecord(state.model) ? state.model : null;
     const name = model && typeof model.name === "string" ? model.name : null;
+    this.currentModelId =
+      model && typeof model.id === "string" ? model.id : this.currentModelId;
     const thinking =
       typeof state.thinkingLevel === "string" ? state.thinkingLevel : null;
     if (name) {
@@ -396,7 +515,13 @@ export class HarnessView extends ItemView {
 
   private onCommandResponse(message: Record<string, unknown>): void {
     const command = typeof message.command === "string" ? message.command : "";
+    const responseId = typeof message.id === "string" ? message.id : null;
+
     if (message.success !== true) {
+      // Never leave a pending insert dangling on failure.
+      if (responseId && responseId === this.pendingInsertId) {
+        this.pendingInsertId = null;
+      }
       const error =
         typeof message.error === "string" ? message.error : "command failed";
       this.transcript?.system(`${command || "command"}: ${error}`, "error");
@@ -404,6 +529,25 @@ export class HarnessView extends ItemView {
     }
 
     const data = isRecord(message.data) ? message.data : null;
+
+    if (command === "get_last_assistant_text") {
+      if (!responseId || responseId !== this.pendingInsertId) return;
+      this.pendingInsertId = null;
+      const text = typeof data?.text === "string" ? data.text : "";
+      if (!text.trim()) {
+        new Notice("Pi Harness: pi has not replied yet.");
+        return;
+      }
+      this.plugin.insertIntoActiveNote(text);
+      return;
+    }
+
+    if (command === "get_available_models") {
+      const models = Array.isArray(data?.models) ? data.models : [];
+      this.availableModels = models.filter(isRecord);
+      return;
+    }
+
     if (command === "new_session") {
       if (data?.cancelled === true) {
         this.transcript?.system(

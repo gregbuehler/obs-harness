@@ -17,8 +17,14 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const outFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "obs-harness-fmt-")), "t.mjs");
+const repoRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+);
+const outFile = path.join(
+  fs.mkdtempSync(path.join(os.tmpdir(), "obs-harness-fmt-")),
+  "t.mjs",
+);
 
 execFileSync(
   "npx",
@@ -35,7 +41,8 @@ execFileSync(
   { cwd: repoRoot, stdio: "inherit" },
 );
 
-const { describeAnswer, summarizeArgs, formatArgsBody, extractText } = await import(outFile);
+const { describeAnswer, summarizeArgs, formatArgsBody, extractText } =
+  await import(outFile);
 
 let failures = 0;
 const it = (label, fn) => {
@@ -107,7 +114,13 @@ it("handles a bare string and non-records", () => {
 
 console.log("\nextractText");
 it("flattens content blocks", () => {
-  assert.equal(extractText([{ type: "text", text: "a" }, { type: "text", text: "b" }]), "ab");
+  assert.equal(
+    extractText([
+      { type: "text", text: "a" },
+      { type: "text", text: "b" },
+    ]),
+    "ab",
+  );
 });
 it("passes strings through and ignores junk", () => {
   assert.equal(extractText("plain"), "plain");
@@ -116,5 +129,9 @@ it("passes strings through and ignores junk", () => {
 });
 
 fs.rmSync(path.dirname(outFile), { recursive: true, force: true });
-console.log(failures === 0 ? "\nall format checks passed\n" : `\n${failures} check(s) FAILED\n`);
+console.log(
+  failures === 0
+    ? "\nall format checks passed\n"
+    : `\n${failures} check(s) FAILED\n`,
+);
 process.exit(failures === 0 ? 0 : 1);

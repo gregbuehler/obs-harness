@@ -102,8 +102,22 @@ export interface BridgeError {
 }
 
 export interface BridgePong {
- type: "bridge_pong";
- id?: string;
+  type: "bridge_pong";
+  id?: string;
+}
+
+/**
+ * A blocking extension dialog is no longer answerable: another panel replied,
+ * or the server auto-cancelled it. Without this, a second panel keeps showing
+ * live-looking buttons for a dialog pi has already moved past.
+ */
+export interface BridgeDialogResolved {
+  type: "bridge_dialog_resolved";
+  /** The extension_ui_request id being retired. */
+  dialogId: string;
+  reason: "answered" | "cancelled" | "no-clients";
+  /** Short description of the answer, for the other panels to display. */
+  answer?: string;
 }
 
 /** Anything emitted by pi (events and command responses) passes through as-is. */
@@ -118,21 +132,32 @@ export type ServerMessage =
  | BridgeStatus
  | BridgeError
  | BridgePong
+ | BridgeDialogResolved
  | PiPassThrough;
 
 // ---------------------------------------------------------------------------
 // Shared helpers
 // ---------------------------------------------------------------------------
 
-/** pi RPC commands the bridge will forward. Anything else is rejected. */
+/**
+ * pi RPC commands the bridge will forward. Anything else is rejected.
+ *
+ * Verified against the RpcCommand union in the installed pi build rather than
+ * written from memory: `list_sessions` and `load_session` do not exist (there is
+ * no RPC way to enumerate sessions at all), and switching is `switch_session`.
+ */
 export const FORWARDABLE_COMMANDS: ReadonlySet<string> = new Set([
  "prompt",
  "steer",
  "follow_up",
  "abort",
+ "abort_bash",
  "new_session",
  "get_state",
  "get_messages",
+ "get_entries",
+ "get_tree",
+ "get_last_assistant_text",
  "set_model",
  "cycle_model",
  "get_available_models",
@@ -149,8 +174,10 @@ export const FORWARDABLE_COMMANDS: ReadonlySet<string> = new Set([
  "get_session_stats",
  "export_html",
  "set_session_name",
- "list_sessions",
- "load_session",
+ "switch_session",
+ "fork",
+ "clone",
+ "get_fork_messages",
  "get_commands",
  "extension_ui_response",
 ]);
