@@ -4,8 +4,8 @@
  *
  *   node scripts/install-plugin.mjs [vaultPath]
  *
- * Defaults to $LORE_VAULT. Existing symlinks are replaced; a real directory is
- * never touched.
+ * Falls back to $OBSIDIAN_VAULT, then $LORE_VAULT. Existing symlinks are
+ * replaced; a real directory is never touched.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -29,10 +29,11 @@ if (typeof manifest?.id !== "string" || manifest.id.length === 0) {
  process.exit(1);
 }
 
-const vault = process.argv[2] ?? process.env.LORE_VAULT;
+const vault =
+ process.argv[2] ?? process.env.OBSIDIAN_VAULT ?? process.env.LORE_VAULT;
 if (!vault) {
  console.error(
-  "usage: node scripts/install-plugin.mjs <vaultPath>   (or set $LORE_VAULT)",
+  "usage: node scripts/install-plugin.mjs <vaultPath>   (or set $OBSIDIAN_VAULT)",
  );
  process.exit(1);
 }

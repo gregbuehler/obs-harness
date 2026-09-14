@@ -75,7 +75,7 @@ it("falls back for non-string values", () => {
 
 console.log("\nsummarizeArgs");
 it("returns a long command in full (was truncated at 117 chars)", () => {
-  const cmd = `git -C ${"/Users/gbuehler/Documents/lore/gbuehler".repeat(4)} status --short`;
+  const cmd = `git -C ${"/home/example/notes/some/deep/vault/path".repeat(4)} status --short`;
   assert.equal(summarizeArgs({ command: cmd }), cmd);
   assert.ok(!summarizeArgs({ command: cmd }).includes("\u2026"));
 });
