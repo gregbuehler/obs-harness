@@ -52,11 +52,19 @@ const serverOptions = {
   sourcemap: production ? false : "inline",
   minify: false,
   banner: { js: `#!/usr/bin/env node\n${banner}` },
-  external: [...builtins, ...builtins.map((m) => `node:${m}`), "bufferutil", "utf-8-validate"],
+  external: [
+    ...builtins,
+    ...builtins.map((m) => `node:${m}`),
+    "bufferutil",
+    "utf-8-validate",
+  ],
 };
 
 if (production) {
-  await Promise.all([esbuild.build(pluginOptions), esbuild.build(serverOptions)]);
+  await Promise.all([
+    esbuild.build(pluginOptions),
+    esbuild.build(serverOptions),
+  ]);
   process.exit(0);
 }
 

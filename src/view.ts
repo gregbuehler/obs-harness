@@ -3,7 +3,13 @@
  * main-area tab. Each panel is a thin client — all agent state lives in the
  * bridge server, so closing and reopening the panel resumes the conversation.
  */
-import { FileSystemAdapter, ItemView, Notice, setIcon, type WorkspaceLeaf } from "obsidian";
+import {
+  FileSystemAdapter,
+  ItemView,
+  Notice,
+  setIcon,
+  type WorkspaceLeaf,
+} from "obsidian";
 
 import { isRecord } from "../shared/protocol.js";
 import { BridgeClient, type ConnectionPhase } from "./client.js";
@@ -72,11 +78,14 @@ export class HarnessView extends ItemView {
       onDialogResponse: (response) => this.client?.send(response),
     });
 
-    this.client = new BridgeClient(() => resolveEndpoint(this.plugin.settings), {
-      onMessage: (message) => this.onServerMessage(message),
-      onPhase: (phase, detail) => this.onPhase(phase, detail),
-      onReady: () => this.attach(),
-    });
+    this.client = new BridgeClient(
+      () => resolveEndpoint(this.plugin.settings),
+      {
+        onMessage: (message) => this.onServerMessage(message),
+        onPhase: (phase, detail) => this.onPhase(phase, detail),
+        onReady: () => this.attach(),
+      },
+    );
 
     this.client.connect();
     // A missing server is the common first-run case; offer to fix it silently.
@@ -99,13 +108,23 @@ export class HarnessView extends ItemView {
 
     const status = bar.createDiv({ cls: "oh-status" });
     this.statusDotEl = status.createSpan({ cls: "oh-status__dot" });
-    this.statusTextEl = status.createSpan({ cls: "oh-status__text", text: "connecting…" });
+    this.statusTextEl = status.createSpan({
+      cls: "oh-status__text",
+      text: "connecting…",
+    });
 
     bar.createDiv({ cls: "oh-toolbar__spacer" });
     this.queueEl = bar.createSpan({ cls: "oh-queue" });
 
-    const iconButton = (icon: string, tooltip: string, onClick: () => void): void => {
-      const button = bar.createEl("button", { cls: "oh-icon-button", attr: { "aria-label": tooltip } });
+    const iconButton = (
+      icon: string,
+      tooltip: string,
+      onClick: () => void,
+    ): void => {
+      const button = bar.createEl("button", {
+        cls: "oh-icon-button",
+        attr: { "aria-label": tooltip },
+      });
       setIcon(button, icon);
       button.setAttribute("title", tooltip);
       this.registerDomEvent(button, "click", onClick);
@@ -113,7 +132,9 @@ export class HarnessView extends ItemView {
 
     iconButton("rotate-ccw", "New session", () => this.newSession());
     iconButton("plug-zap", "Reconnect", () => this.reconnect());
-    iconButton("arrow-down-to-line", "Scroll to bottom", () => this.transcript?.scrollToBottom());
+    iconButton("arrow-down-to-line", "Scroll to bottom", () =>
+      this.transcript?.scrollToBottom(),
+    );
   }
 
   private buildComposer(): void {
@@ -121,7 +142,10 @@ export class HarnessView extends ItemView {
 
     const input = composer.createEl("textarea", {
       cls: "oh-composer__input",
-      attr: { rows: "3", placeholder: "Ask pi…  (Enter to send, Shift+Enter for newline)" },
+      attr: {
+        rows: "3",
+        placeholder: "Ask pi…  (Enter to send, Shift+Enter for newline)",
+      },
     });
     this.inputEl = input;
 
@@ -143,12 +167,18 @@ export class HarnessView extends ItemView {
     this.modelEl = actions.createSpan({ cls: "oh-model", text: "—" });
     actions.createDiv({ cls: "oh-toolbar__spacer" });
 
-    const abort = actions.createEl("button", { cls: "oh-button mod-warning", text: "Stop" });
+    const abort = actions.createEl("button", {
+      cls: "oh-button mod-warning",
+      text: "Stop",
+    });
     abort.hide();
     this.registerDomEvent(abort, "click", () => this.abort());
     this.abortButtonEl = abort;
 
-    const send = actions.createEl("button", { cls: "oh-button mod-cta", text: "Send" });
+    const send = actions.createEl("button", {
+      cls: "oh-button mod-cta",
+      text: "Send",
+    });
     this.registerDomEvent(send, "click", () => this.submit());
     this.sendButtonEl = send;
   }
@@ -199,12 +229,16 @@ export class HarnessView extends ItemView {
 
   /** Spawn the bundled server when nothing is listening and the user allows it. */
   private tryAutoStart(): void {
-    if (this.autoStartAttempted || !this.plugin.settings.autoStartServer) return;
+    if (this.autoStartAttempted || !this.plugin.settings.autoStartServer)
+      return;
     this.autoStartAttempted = true;
 
     const pluginDir = this.plugin.absolutePluginDir();
     if (!pluginDir) {
-      this.transcript?.system("cannot locate the plugin directory to start the server", "error");
+      this.transcript?.system(
+        "cannot locate the plugin directory to start the server",
+        "error",
+      );
       return;
     }
     const result = startServer(this.plugin.settings, pluginDir);
@@ -223,7 +257,10 @@ export class HarnessView extends ItemView {
       reconnecting: "reconnecting…",
       failed: "no server",
     };
-    this.setStatus(label[phase], phase === "connected" ? "ok" : phase === "failed" ? "error" : "warn");
+    this.setStatus(
+      label[phase],
+      phase === "connected" ? "ok" : phase === "failed" ? "error" : "warn",
+    );
     if (phase === "failed") {
       this.transcript?.system(detail, "error");
       this.tryAutoStart();
@@ -249,7 +286,8 @@ export class HarnessView extends ItemView {
   private onServerMessage(message: Record<string, unknown>): void {
     switch (message.type) {
       case "bridge_hello": {
-        const piVersion = typeof message.piVersion === "string" ? message.piVersion : null;
+        const piVersion =
+          typeof message.piVersion === "string" ? message.piVersion : null;
         if (piVersion) this.setStatus(`connected · pi ${piVersion}`, "ok");
         return;
       }
@@ -261,7 +299,9 @@ export class HarnessView extends ItemView {
         return;
       case "bridge_error":
         this.transcript?.system(
-          typeof message.message === "string" ? message.message : "bridge error",
+          typeof message.message === "string"
+            ? message.message
+            : "bridge error",
           "error",
         );
         return;
@@ -301,7 +341,9 @@ export class HarnessView extends ItemView {
     }
 
     const messages = Array.isArray(message.messages) ? message.messages : [];
-    const pendingTools = Array.isArray(message.pendingTools) ? message.pendingTools : [];
+    const pendingTools = Array.isArray(message.pendingTools)
+      ? message.pendingTools
+      : [];
     transcript.renderSnapshot(messages, pendingTools);
 
     const state = isRecord(message.state) ? message.state : null;
@@ -312,9 +354,12 @@ export class HarnessView extends ItemView {
     if (!state) return;
     const model = isRecord(state.model) ? state.model : null;
     const name = model && typeof model.name === "string" ? model.name : null;
-    const thinking = typeof state.thinkingLevel === "string" ? state.thinkingLevel : null;
+    const thinking =
+      typeof state.thinkingLevel === "string" ? state.thinkingLevel : null;
     if (name) {
-      this.modelEl?.setText(thinking && thinking !== "off" ? `${name} · ${thinking}` : name);
+      this.modelEl?.setText(
+        thinking && thinking !== "off" ? `${name} · ${thinking}` : name,
+      );
     }
     if (state.isStreaming === true) this.setStreaming(true);
   }
@@ -327,15 +372,20 @@ export class HarnessView extends ItemView {
     }
     if (phase === "exited") {
       this.setStreaming(false);
-      const code = typeof message.exitCode === "number" ? ` (exit ${String(message.exitCode)})` : "";
-      const detail = typeof message.detail === "string" ? `: ${message.detail}` : "";
+      const code =
+        typeof message.exitCode === "number"
+          ? ` (exit ${String(message.exitCode)})`
+          : "";
+      const detail =
+        typeof message.detail === "string" ? `: ${message.detail}` : "";
       this.transcript?.system(`agent stopped${code}${detail}`, "warn");
       this.setStatus("agent stopped", "warn");
       this.attachedCwd = null;
       return;
     }
     if (phase === "error") {
-      const detail = typeof message.detail === "string" ? message.detail : "unknown error";
+      const detail =
+        typeof message.detail === "string" ? message.detail : "unknown error";
       this.transcript?.system(`could not start agent: ${detail}`, "error");
       this.setStatus("agent failed", "error");
     }
@@ -344,7 +394,8 @@ export class HarnessView extends ItemView {
   private onCommandResponse(message: Record<string, unknown>): void {
     const command = typeof message.command === "string" ? message.command : "";
     if (message.success !== true) {
-      const error = typeof message.error === "string" ? message.error : "command failed";
+      const error =
+        typeof message.error === "string" ? message.error : "command failed";
       this.transcript?.system(`${command || "command"}: ${error}`, "error");
       return;
     }
@@ -352,7 +403,10 @@ export class HarnessView extends ItemView {
     const data = isRecord(message.data) ? message.data : null;
     if (command === "new_session") {
       if (data?.cancelled === true) {
-        this.transcript?.system("new session cancelled by an extension", "warn");
+        this.transcript?.system(
+          "new session cancelled by an extension",
+          "warn",
+        );
         return;
       }
       this.transcript?.clear();
@@ -369,8 +423,12 @@ export class HarnessView extends ItemView {
   }
 
   private onQueueUpdate(message: Record<string, unknown>): void {
-    const steering = Array.isArray(message.steering) ? message.steering.length : 0;
-    const followUp = Array.isArray(message.followUp) ? message.followUp.length : 0;
+    const steering = Array.isArray(message.steering)
+      ? message.steering.length
+      : 0;
+    const followUp = Array.isArray(message.followUp)
+      ? message.followUp.length
+      : 0;
     const total = steering + followUp;
     this.queueEl?.setText(total > 0 ? `${String(total)} queued` : "");
   }
@@ -397,7 +455,11 @@ export class HarnessView extends ItemView {
 
     this.transcript?.userEcho(text);
     // Mid-run input becomes steering, which pi delivers at the next safe point.
-    client.send(this.isStreaming ? { type: "steer", message: text } : { type: "prompt", message: text });
+    client.send(
+      this.isStreaming
+        ? { type: "steer", message: text }
+        : { type: "prompt", message: text },
+    );
 
     input.value = "";
     this.autoGrow();

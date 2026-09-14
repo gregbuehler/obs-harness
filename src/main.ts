@@ -7,7 +7,12 @@
  */
 import path from "node:path";
 
-import { FileSystemAdapter, Notice, Plugin, type WorkspaceLeaf } from "obsidian";
+import {
+  FileSystemAdapter,
+  Notice,
+  Plugin,
+  type WorkspaceLeaf,
+} from "obsidian";
 
 import {
   DEFAULT_SETTINGS,

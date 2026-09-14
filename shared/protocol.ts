@@ -25,45 +25,49 @@ export const INTERNAL_ID_PREFIX = "__bridge:";
 
 /** Attach to (or lazily create) the pi session for a working directory. */
 export interface BridgeAttach {
-  type: "bridge_attach";
-  /** Absolute path used as the pi process cwd; also the session key. */
-  cwd: string;
-  /** Optional `provider/id` model override, applied only when spawning. */
-  model?: string;
-  /** Human-readable session name, applied only when spawning. */
-  name?: string;
+ type: "bridge_attach";
+ /** Absolute path used as the pi process cwd; also the session key. */
+ cwd: string;
+ /** Optional `provider/id` model override, applied only when spawning. */
+ model?: string;
+ /** Human-readable session name, applied only when spawning. */
+ name?: string;
 }
 
 /** Ask the server to discard a session's pi process (next attach respawns). */
 export interface BridgeReset {
-  type: "bridge_reset";
+ type: "bridge_reset";
 }
 
 /** Liveness probe; the server replies with `bridge_pong`. */
 export interface BridgePing {
-  type: "bridge_ping";
-  id?: string;
+ type: "bridge_ping";
+ id?: string;
 }
 
 /** Any pi RPC command, forwarded verbatim to the pi process stdin. */
 export interface PiCommandEnvelope {
-  type: string;
-  id?: string;
-  [key: string]: unknown;
+ type: string;
+ id?: string;
+ [key: string]: unknown;
 }
 
-export type ClientMessage = BridgeAttach | BridgeReset | BridgePing | PiCommandEnvelope;
+export type ClientMessage =
+ | BridgeAttach
+ | BridgeReset
+ | BridgePing
+ | PiCommandEnvelope;
 
 // ---------------------------------------------------------------------------
 // Server -> client
 // ---------------------------------------------------------------------------
 
 export interface BridgeHello {
-  type: "bridge_hello";
-  protocol: number;
-  serverVersion: string;
-  piVersion: string | null;
-  sessions: string[];
+ type: "bridge_hello";
+ protocol: number;
+ serverVersion: string;
+ piVersion: string | null;
+ sessions: string[];
 }
 
 /**
@@ -71,50 +75,50 @@ export interface BridgeHello {
  * reopened after a plugin reload) renders the existing transcript.
  */
 export interface BridgeSnapshot {
-  type: "bridge_snapshot";
-  cwd: string;
-  spawned: boolean;
-  state: Record<string, unknown> | null;
-  messages: unknown[];
-  /** Live tool executions started but not yet finished, keyed by toolCallId. */
-  pendingTools: { toolCallId: string; toolName: string; args: unknown }[];
+ type: "bridge_snapshot";
+ cwd: string;
+ spawned: boolean;
+ state: Record<string, unknown> | null;
+ messages: unknown[];
+ /** Live tool executions started but not yet finished, keyed by toolCallId. */
+ pendingTools: { toolCallId: string; toolName: string; args: unknown }[];
 }
 
 export type BridgeStatusPhase = "spawning" | "ready" | "exited" | "error";
 
 export interface BridgeStatus {
-  type: "bridge_status";
-  phase: BridgeStatusPhase;
-  cwd?: string;
-  detail?: string;
-  exitCode?: number | null;
+ type: "bridge_status";
+ phase: BridgeStatusPhase;
+ cwd?: string;
+ detail?: string;
+ exitCode?: number | null;
 }
 
 export interface BridgeError {
-  type: "bridge_error";
-  message: string;
-  /** Echoes the id of the offending client message, when it had one. */
-  id?: string;
+ type: "bridge_error";
+ message: string;
+ /** Echoes the id of the offending client message, when it had one. */
+ id?: string;
 }
 
 export interface BridgePong {
-  type: "bridge_pong";
-  id?: string;
+ type: "bridge_pong";
+ id?: string;
 }
 
 /** Anything emitted by pi (events and command responses) passes through as-is. */
 export interface PiPassThrough {
-  type: string;
-  [key: string]: unknown;
+ type: string;
+ [key: string]: unknown;
 }
 
 export type ServerMessage =
-  | BridgeHello
-  | BridgeSnapshot
-  | BridgeStatus
-  | BridgeError
-  | BridgePong
-  | PiPassThrough;
+ | BridgeHello
+ | BridgeSnapshot
+ | BridgeStatus
+ | BridgeError
+ | BridgePong
+ | PiPassThrough;
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -122,33 +126,33 @@ export type ServerMessage =
 
 /** pi RPC commands the bridge will forward. Anything else is rejected. */
 export const FORWARDABLE_COMMANDS: ReadonlySet<string> = new Set([
-  "prompt",
-  "steer",
-  "follow_up",
-  "abort",
-  "new_session",
-  "get_state",
-  "get_messages",
-  "set_model",
-  "cycle_model",
-  "get_available_models",
-  "set_thinking_level",
-  "cycle_thinking_level",
-  "get_available_thinking_levels",
-  "set_steering_mode",
-  "set_follow_up_mode",
-  "compact",
-  "set_auto_compaction",
-  "set_auto_retry",
-  "abort_retry",
-  "bash",
-  "get_session_stats",
-  "export_html",
-  "set_session_name",
-  "list_sessions",
-  "load_session",
-  "get_commands",
-  "extension_ui_response",
+ "prompt",
+ "steer",
+ "follow_up",
+ "abort",
+ "new_session",
+ "get_state",
+ "get_messages",
+ "set_model",
+ "cycle_model",
+ "get_available_models",
+ "set_thinking_level",
+ "cycle_thinking_level",
+ "get_available_thinking_levels",
+ "set_steering_mode",
+ "set_follow_up_mode",
+ "compact",
+ "set_auto_compaction",
+ "set_auto_retry",
+ "abort_retry",
+ "bash",
+ "get_session_stats",
+ "export_html",
+ "set_session_name",
+ "list_sessions",
+ "load_session",
+ "get_commands",
+ "extension_ui_response",
 ]);
 
 /**
@@ -156,19 +160,19 @@ export const FORWARDABLE_COMMANDS: ReadonlySet<string> = new Set([
  * port and token without the user copying anything by hand.
  */
 export interface HandshakeFile {
-  version: number;
-  port: number;
-  token: string;
-  pid: number;
-  startedAt: number;
+ version: number;
+ port: number;
+ token: string;
+ pid: number;
+ startedAt: number;
 }
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+ return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 /** Narrow an unknown parsed payload to something with a string `type`. */
 export function messageType(value: unknown): string | null {
-  if (!isRecord(value)) return null;
-  return typeof value.type === "string" ? value.type : null;
+ if (!isRecord(value)) return null;
+ return typeof value.type === "string" ? value.type : null;
 }

@@ -13,7 +13,11 @@ import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 
-import { DEFAULT_PORT, WS_PATH, type HandshakeFile } from "../../shared/protocol.js";
+import {
+  DEFAULT_PORT,
+  WS_PATH,
+  type HandshakeFile,
+} from "../../shared/protocol.js";
 import { HarnessServer } from "./server.js";
 
 const SERVER_VERSION = "0.1.0";
@@ -51,7 +55,9 @@ function parseArgs(argv: string[]): Args {
     host: "127.0.0.1",
     piPath: process.env.OBS_HARNESS_PI ?? "pi",
     token: process.env.OBS_HARNESS_TOKEN ?? null,
-    stateDir: process.env.OBS_HARNESS_STATE_DIR ?? path.join(os.homedir(), ".obs-harness"),
+    stateDir:
+      process.env.OBS_HARNESS_STATE_DIR ??
+      path.join(os.homedir(), ".obs-harness"),
     idleTimeoutMs: 0,
     quiet: false,
   };
@@ -109,7 +115,10 @@ function parseArgs(argv: string[]): Args {
 
 function detectPiVersion(piPath: string): string | null {
   try {
-    return execFileSync(piPath, ["--version"], { encoding: "utf8", timeout: 5_000 }).trim();
+    return execFileSync(piPath, ["--version"], {
+      encoding: "utf8",
+      timeout: 5_000,
+    }).trim();
   } catch {
     return null;
   }
@@ -145,9 +154,13 @@ async function main(): Promise<void> {
     await server.listen();
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);
-    process.stderr.write(`[obs-harness] cannot listen on ${args.host}:${args.port}: ${detail}\n`);
+    process.stderr.write(
+      `[obs-harness] cannot listen on ${args.host}:${args.port}: ${detail}\n`,
+    );
     if (detail.includes("EADDRINUSE")) {
-      process.stderr.write("[obs-harness] another bridge is probably already running.\n");
+      process.stderr.write(
+        "[obs-harness] another bridge is probably already running.\n",
+      );
     }
     process.exit(1);
   }
@@ -164,7 +177,9 @@ async function main(): Promise<void> {
   };
   try {
     fs.mkdirSync(args.stateDir, { recursive: true, mode: 0o700 });
-    fs.writeFileSync(handshakePath, `${JSON.stringify(handshake, null, 2)}\n`, { mode: 0o600 });
+    fs.writeFileSync(handshakePath, `${JSON.stringify(handshake, null, 2)}\n`, {
+      mode: 0o600,
+    });
     log(`handshake written to ${handshakePath}`);
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);
@@ -186,8 +201,14 @@ async function main(): Promise<void> {
     try {
       // Only remove the handshake if it is still ours; a newer server may have
       // replaced it.
-      const onDisk: unknown = JSON.parse(fs.readFileSync(handshakePath, "utf8"));
-      if (typeof onDisk === "object" && onDisk !== null && (onDisk as HandshakeFile).pid === process.pid) {
+      const onDisk: unknown = JSON.parse(
+        fs.readFileSync(handshakePath, "utf8"),
+      );
+      if (
+        typeof onDisk === "object" &&
+        onDisk !== null &&
+        (onDisk as HandshakeFile).pid === process.pid
+      ) {
         fs.unlinkSync(handshakePath);
       }
     } catch {

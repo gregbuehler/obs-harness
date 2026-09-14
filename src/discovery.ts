@@ -24,7 +24,8 @@ function resolveStateDir(settings: HarnessSettings): string {
   const configured = settings.stateDir.trim();
   if (!configured) return path.join(os.homedir(), ".obs-harness");
   if (configured === "~") return os.homedir();
-  if (configured.startsWith("~/")) return path.join(os.homedir(), configured.slice(2));
+  if (configured.startsWith("~/"))
+    return path.join(os.homedir(), configured.slice(2));
   return path.resolve(configured);
 }
 
@@ -39,7 +40,12 @@ export function readHandshake(settings: HarnessSettings): HandshakeFile | null {
     const parsed: unknown = JSON.parse(raw);
     if (!isRecord(parsed)) return null;
     const { port, token, pid } = parsed;
-    if (typeof port !== "number" || typeof token !== "string" || token.length === 0) return null;
+    if (
+      typeof port !== "number" ||
+      typeof token !== "string" ||
+      token.length === 0
+    )
+      return null;
     return {
       version: typeof parsed.version === "number" ? parsed.version : 1,
       port,
@@ -108,10 +114,19 @@ export function startServer(
 ): StartServerResult {
   const serverScript = path.join(pluginDir, "server.js");
   if (!fs.existsSync(serverScript)) {
-    return { ok: false, detail: `server.js not found at ${serverScript} — run 'npm run build'` };
+    return {
+      ok: false,
+      detail: `server.js not found at ${serverScript} — run 'npm run build'`,
+    };
   }
 
-  const args = [serverScript, "--port", String(settings.port), "--pi", settings.piPath];
+  const args = [
+    serverScript,
+    "--port",
+    String(settings.port),
+    "--pi",
+    settings.piPath,
+  ];
   const configuredStateDir = settings.stateDir.trim();
   if (configuredStateDir) args.push("--state-dir", resolveStateDir(settings));
   if (settings.token) args.push("--token", settings.token);
@@ -127,7 +142,10 @@ export function startServer(
       cwd: pluginDir,
     });
     child.unref();
-    return { ok: true, detail: `started bridge server (pid ${String(child.pid ?? -1)})` };
+    return {
+      ok: true,
+      detail: `started bridge server (pid ${String(child.pid ?? -1)})`,
+    };
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);
     return { ok: false, detail: `could not start server: ${detail}` };

@@ -14,7 +14,8 @@ export class JsonlSplitter {
 
   /** Feed a stdout chunk, returning the complete lines it produced. */
   push(chunk: Buffer): string[] {
-    this.pending = this.pending.length === 0 ? chunk : Buffer.concat([this.pending, chunk]);
+    this.pending =
+      this.pending.length === 0 ? chunk : Buffer.concat([this.pending, chunk]);
 
     const lines: string[] = [];
     let start = 0;
@@ -23,7 +24,8 @@ export class JsonlSplitter {
       if (lf === -1) break;
       let end = lf;
       if (end > start && this.pending[end - 1] === 0x0d) end -= 1;
-      if (end > start) lines.push(this.pending.subarray(start, end).toString("utf8"));
+      if (end > start)
+        lines.push(this.pending.subarray(start, end).toString("utf8"));
       start = lf + 1;
     }
 

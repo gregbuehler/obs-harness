@@ -8,7 +8,12 @@
 import { isRecord, messageType } from "../shared/protocol.js";
 import type { Endpoint } from "./discovery.js";
 
-export type ConnectionPhase = "idle" | "connecting" | "connected" | "reconnecting" | "failed";
+export type ConnectionPhase =
+  | "idle"
+  | "connecting"
+  | "connected"
+  | "reconnecting"
+  | "failed";
 
 export interface BridgeClientHandlers {
   /** Any server message, including pass-through pi events. */
@@ -33,7 +38,10 @@ export class BridgeClient {
   /** Commands sent before the socket opened, replayed on ready. */
   private readonly outbox: Record<string, unknown>[] = [];
 
-  constructor(endpointFactory: () => Endpoint | null, handlers: BridgeClientHandlers) {
+  constructor(
+    endpointFactory: () => Endpoint | null,
+    handlers: BridgeClientHandlers,
+  ) {
     this.endpointFactory = endpointFactory;
     this.handlers = handlers;
   }
@@ -54,15 +62,23 @@ export class BridgeClient {
 
     const endpoint = this.endpointFactory();
     if (!endpoint) {
-      this.setPhase("failed", "no server found — start the bridge or set a token in settings");
+      this.setPhase(
+        "failed",
+        "no server found — start the bridge or set a token in settings",
+      );
       return;
     }
 
-    this.setPhase(this.backoff === INITIAL_BACKOFF_MS ? "connecting" : "reconnecting", endpoint.url);
+    this.setPhase(
+      this.backoff === INITIAL_BACKOFF_MS ? "connecting" : "reconnecting",
+      endpoint.url,
+    );
 
     let socket: WebSocket;
     try {
-      socket = new WebSocket(`${endpoint.url}?token=${encodeURIComponent(endpoint.token)}`);
+      socket = new WebSocket(
+        `${endpoint.url}?token=${encodeURIComponent(endpoint.token)}`,
+      );
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err);
       this.setPhase("failed", detail);
@@ -92,7 +108,8 @@ export class BridgeClient {
 
     socket.onerror = () => {
       // Detail is intentionally vague: browser WebSocket errors carry no reason.
-      if (this.phase !== "connected") this.setPhase("reconnecting", "connection error");
+      if (this.phase !== "connected")
+        this.setPhase("reconnecting", "connection error");
     };
 
     socket.onclose = (event: CloseEvent) => {

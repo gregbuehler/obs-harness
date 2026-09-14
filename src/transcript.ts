@@ -72,7 +72,15 @@ function prettyJson(value: unknown): string {
 /** One-line argument preview for a collapsed tool row. */
 function summarizeArgs(args: unknown): string {
   if (!isRecord(args)) return "";
-  for (const key of ["command", "path", "file_path", "pattern", "query", "url", "subject"]) {
+  for (const key of [
+    "command",
+    "path",
+    "file_path",
+    "pattern",
+    "query",
+    "url",
+    "subject",
+  ]) {
     const value = args[key];
     if (typeof value === "string" && value.length > 0) {
       return value.length > 120 ? `${value.slice(0, 117)}…` : value;
@@ -97,7 +105,9 @@ export class Transcript {
 
     this.container.addEventListener("scroll", () => {
       const distance =
-        this.container.scrollHeight - this.container.scrollTop - this.container.clientHeight;
+        this.container.scrollHeight -
+        this.container.scrollTop -
+        this.container.clientHeight;
       this.stickToBottom = distance < 48;
     });
   }
@@ -115,7 +125,9 @@ export class Transcript {
   // -------------------------------------------------------------------------
 
   system(text: string, kind: "info" | "warn" | "error" = "info"): void {
-    const row = this.container.createDiv({ cls: `oh-system oh-system--${kind}` });
+    const row = this.container.createDiv({
+      cls: `oh-system oh-system--${kind}`,
+    });
     row.createSpan({ cls: "oh-system__text", text });
     this.autoScroll();
   }
@@ -172,10 +184,14 @@ export class Transcript {
         this.system("context compacted", "info");
         return;
       case "auto_retry_start":
-        this.system(`retrying after transient error${this.retryDetail(event)}`, "warn");
+        this.system(
+          `retrying after transient error${this.retryDetail(event)}`,
+          "warn",
+        );
         return;
       case "extension_error": {
-        const message = typeof event.error === "string" ? event.error : "extension error";
+        const message =
+          typeof event.error === "string" ? event.error : "extension error";
         this.system(message, "error");
         return;
       }
@@ -194,7 +210,8 @@ export class Transcript {
 
   private onMessageStart(event: Record<string, unknown>): void {
     const message = isRecord(event.message) ? event.message : null;
-    const role = message && typeof message.role === "string" ? message.role : null;
+    const role =
+      message && typeof message.role === "string" ? message.role : null;
 
     if (role === "user") {
       // Deduplicate against the optimistic echo rendered on send.
@@ -211,7 +228,9 @@ export class Transcript {
   }
 
   private beginAssistant(): AssistantRender {
-    const wrapper = this.container.createDiv({ cls: "oh-msg oh-msg--assistant" });
+    const wrapper = this.container.createDiv({
+      cls: "oh-msg oh-msg--assistant",
+    });
     wrapper.createDiv({ cls: "oh-msg__role", text: "pi" });
     const contentEl = wrapper.createDiv({ cls: "oh-msg__body" });
     const render: AssistantRender = { wrapper, contentEl, blocks: new Map() };
@@ -227,7 +246,8 @@ export class Transcript {
    */
   private onMessageEnd(event: Record<string, unknown>): void {
     const message = isRecord(event.message) ? event.message : null;
-    const role = message && typeof message.role === "string" ? message.role : null;
+    const role =
+      message && typeof message.role === "string" ? message.role : null;
     if (role !== null && role !== "assistant") return;
 
     const render = this.current;
@@ -249,17 +269,25 @@ export class Transcript {
       this.current = null;
     }
 
-    const stopReason = message && typeof message.stopReason === "string" ? message.stopReason : "";
+    const stopReason =
+      message && typeof message.stopReason === "string"
+        ? message.stopReason
+        : "";
     if (stopReason === "aborted") this.system("aborted", "warn");
-    if (stopReason === "error") this.system("the model returned an error", "error");
-    if (stopReason === "length") this.system("response truncated at the token limit", "warn");
+    if (stopReason === "error")
+      this.system("the model returned an error", "error");
+    if (stopReason === "length")
+      this.system("response truncated at the token limit", "warn");
     this.autoScroll();
   }
 
   private onMessageUpdate(event: Record<string, unknown>): void {
-    const delta = isRecord(event.assistantMessageEvent) ? event.assistantMessageEvent : null;
+    const delta = isRecord(event.assistantMessageEvent)
+      ? event.assistantMessageEvent
+      : null;
     if (!delta || typeof delta.type !== "string") return;
-    const contentIndex = typeof delta.contentIndex === "number" ? delta.contentIndex : 0;
+    const contentIndex =
+      typeof delta.contentIndex === "number" ? delta.contentIndex : 0;
     const render = this.current ?? this.beginAssistant();
 
     switch (delta.type) {
@@ -273,7 +301,8 @@ export class Transcript {
         this.closeTextBlock(render, contentIndex, delta.content, "text");
         return;
       case "thinking_start":
-        if (this.options.showThinking) this.openBlock(render, contentIndex, "thinking");
+        if (this.options.showThinking)
+          this.openBlock(render, contentIndex, "thinking");
         return;
       case "thinking_delta":
         if (this.options.showThinking) {
@@ -299,13 +328,19 @@ export class Transcript {
     }
   }
 
-  private openBlock(render: AssistantRender, index: number, kind: BlockKind): StreamBlock {
+  private openBlock(
+    render: AssistantRender,
+    index: number,
+    kind: BlockKind,
+  ): StreamBlock {
     const existing = render.blocks.get(index);
     if (existing) return existing;
 
     let bodyEl: HTMLElement;
     if (kind === "thinking") {
-      const details = render.contentEl.createEl("details", { cls: "oh-thinking" });
+      const details = render.contentEl.createEl("details", {
+        cls: "oh-thinking",
+      });
       details.createEl("summary", { text: "thinking" });
       bodyEl = details.createDiv({ cls: "oh-thinking__body oh-stream" });
     } else if (kind === "toolcall") {
@@ -334,7 +369,8 @@ export class Transcript {
     delta: unknown,
   ): void {
     if (typeof delta !== "string" || delta.length === 0) return;
-    const block = render.blocks.get(index) ?? this.openBlock(render, index, kind);
+    const block =
+      render.blocks.get(index) ?? this.openBlock(render, index, kind);
     block.buffer += delta;
     block.bodyEl.setText(block.buffer);
     this.autoScroll();
@@ -378,7 +414,11 @@ export class Transcript {
    * Promote the provisional streaming block into a tool block keyed by
    * toolCallId, so later execution events land in the same element.
    */
-  private finishToolCall(render: AssistantRender, index: number, toolCall: unknown): void {
+  private finishToolCall(
+    render: AssistantRender,
+    index: number,
+    toolCall: unknown,
+  ): void {
     const block = render.blocks.get(index);
     if (!block) return;
 
@@ -395,7 +435,8 @@ export class Transcript {
     if (labelEl) {
       labelEl.setText(name);
       const summary = summarizeArgs(args);
-      if (summary) labelEl.createSpan({ cls: "oh-tool__preview", text: ` ${summary}` });
+      if (summary)
+        labelEl.createSpan({ cls: "oh-tool__preview", text: ` ${summary}` });
     }
     if (statusEl) statusEl.setText("queued");
 
@@ -420,7 +461,11 @@ export class Transcript {
   // -------------------------------------------------------------------------
 
   /** Reuse the streamed block when present; otherwise synthesize one. */
-  private ensureToolBlock(toolCallId: string, toolName: string, args: unknown): ToolBlock {
+  private ensureToolBlock(
+    toolCallId: string,
+    toolName: string,
+    args: unknown,
+  ): ToolBlock {
     const existing = this.toolBlocks.get(toolCallId);
     if (existing) return existing;
 
@@ -430,11 +475,18 @@ export class Transcript {
     const summary = details.createEl("summary", { cls: "oh-tool__summary" });
     const icon = summary.createSpan({ cls: "oh-tool__icon" });
     setIcon(icon, "wrench");
-    const labelEl = summary.createSpan({ cls: "oh-tool__label", text: toolName });
+    const labelEl = summary.createSpan({
+      cls: "oh-tool__label",
+      text: toolName,
+    });
     const preview = summarizeArgs(args);
-    if (preview) labelEl.createSpan({ cls: "oh-tool__preview", text: ` ${preview}` });
+    if (preview)
+      labelEl.createSpan({ cls: "oh-tool__preview", text: ` ${preview}` });
     const statusEl = summary.createSpan({ cls: "oh-tool__status", text: "…" });
-    const argsEl = details.createEl("pre", { cls: "oh-tool__args", text: prettyJson(args) });
+    const argsEl = details.createEl("pre", {
+      cls: "oh-tool__args",
+      text: prettyJson(args),
+    });
     const resultEl = details.createEl("pre", { cls: "oh-tool__result" });
 
     const block: ToolBlock = { details, labelEl, statusEl, argsEl, resultEl };
@@ -443,9 +495,11 @@ export class Transcript {
   }
 
   private onToolStart(event: Record<string, unknown>): void {
-    const toolCallId = typeof event.toolCallId === "string" ? event.toolCallId : null;
+    const toolCallId =
+      typeof event.toolCallId === "string" ? event.toolCallId : null;
     if (!toolCallId) return;
-    const toolName = typeof event.toolName === "string" ? event.toolName : "tool";
+    const toolName =
+      typeof event.toolName === "string" ? event.toolName : "tool";
     const block = this.ensureToolBlock(toolCallId, toolName, event.args);
     block.details.addClass("is-running");
     block.statusEl.setText("running");
@@ -453,7 +507,8 @@ export class Transcript {
   }
 
   private onToolUpdate(event: Record<string, unknown>): void {
-    const toolCallId = typeof event.toolCallId === "string" ? event.toolCallId : null;
+    const toolCallId =
+      typeof event.toolCallId === "string" ? event.toolCallId : null;
     if (!toolCallId) return;
     const block = this.toolBlocks.get(toolCallId);
     if (!block) return;
@@ -464,9 +519,11 @@ export class Transcript {
   }
 
   private onToolEnd(event: Record<string, unknown>): void {
-    const toolCallId = typeof event.toolCallId === "string" ? event.toolCallId : null;
+    const toolCallId =
+      typeof event.toolCallId === "string" ? event.toolCallId : null;
     if (!toolCallId) return;
-    const toolName = typeof event.toolName === "string" ? event.toolName : "tool";
+    const toolName =
+      typeof event.toolName === "string" ? event.toolName : "tool";
     const block = this.ensureToolBlock(toolCallId, toolName, event.args);
     const result = isRecord(event.result) ? event.result : null;
     const isError = event.isError === true;
@@ -525,25 +582,45 @@ export class Transcript {
       return;
     }
     if (method === "input" || method === "editor") {
-      const title = typeof event.title === "string" ? event.title : "pi needs input";
-      this.renderInputDialog(id, title, typeof event.value === "string" ? event.value : "");
+      const title =
+        typeof event.title === "string" ? event.title : "pi needs input";
+      this.renderInputDialog(
+        id,
+        title,
+        typeof event.value === "string" ? event.value : "",
+      );
     }
   }
 
-  private renderDialog(id: string, title: string, options: string[], isConfirm: boolean): void {
+  private renderDialog(
+    id: string,
+    title: string,
+    options: string[],
+    isConfirm: boolean,
+  ): void {
     const card = this.container.createDiv({ cls: "oh-dialog" });
     card.createDiv({ cls: "oh-dialog__title", text: title });
     const row = card.createDiv({ cls: "oh-dialog__actions" });
 
     const answer = (payload: Record<string, unknown>): void => {
-      this.options.onDialogResponse({ type: "extension_ui_response", id, ...payload });
+      this.options.onDialogResponse({
+        type: "extension_ui_response",
+        id,
+        ...payload,
+      });
       card.addClass("is-answered");
       row.empty();
-      row.createSpan({ cls: "oh-dialog__answered", text: describeAnswer(payload) });
+      row.createSpan({
+        cls: "oh-dialog__answered",
+        text: describeAnswer(payload),
+      });
     };
 
     for (const option of options.length > 0 ? options : ["OK"]) {
-      const button = row.createEl("button", { cls: "oh-dialog__button", text: option });
+      const button = row.createEl("button", {
+        cls: "oh-dialog__button",
+        text: option,
+      });
       button.addEventListener("click", () => {
         if (isConfirm) {
           answer({ value: option === "Yes" });
@@ -553,7 +630,10 @@ export class Transcript {
       });
     }
 
-    const cancel = row.createEl("button", { cls: "oh-dialog__button mod-muted", text: "Cancel" });
+    const cancel = row.createEl("button", {
+      cls: "oh-dialog__button mod-muted",
+      text: "Cancel",
+    });
     cancel.addEventListener("click", () => answer({ cancelled: true }));
     this.autoScroll();
   }
@@ -566,16 +646,29 @@ export class Transcript {
     const row = card.createDiv({ cls: "oh-dialog__actions" });
 
     const answer = (payload: Record<string, unknown>): void => {
-      this.options.onDialogResponse({ type: "extension_ui_response", id, ...payload });
+      this.options.onDialogResponse({
+        type: "extension_ui_response",
+        id,
+        ...payload,
+      });
       card.addClass("is-answered");
       input.disabled = true;
       row.empty();
-      row.createSpan({ cls: "oh-dialog__answered", text: describeAnswer(payload) });
+      row.createSpan({
+        cls: "oh-dialog__answered",
+        text: describeAnswer(payload),
+      });
     };
 
-    const submit = row.createEl("button", { cls: "oh-dialog__button mod-cta", text: "Send" });
+    const submit = row.createEl("button", {
+      cls: "oh-dialog__button mod-cta",
+      text: "Send",
+    });
     submit.addEventListener("click", () => answer({ value: input.value }));
-    const cancel = row.createEl("button", { cls: "oh-dialog__button mod-muted", text: "Cancel" });
+    const cancel = row.createEl("button", {
+      cls: "oh-dialog__button mod-muted",
+      text: "Cancel",
+    });
     cancel.addEventListener("click", () => answer({ cancelled: true }));
     input.focus();
     this.autoScroll();
@@ -600,10 +693,15 @@ export class Transcript {
           this.renderStaticToolResult(message);
           break;
         case "bashExecution": {
-          const command = typeof message.command === "string" ? message.command : "";
-          const block = this.ensureToolBlock(`bash:${command}`, "bash", { command });
+          const command =
+            typeof message.command === "string" ? message.command : "";
+          const block = this.ensureToolBlock(`bash:${command}`, "bash", {
+            command,
+          });
           block.statusEl.setText(message.exitCode === 0 ? "done" : "error");
-          block.resultEl.setText(typeof message.output === "string" ? message.output : "");
+          block.resultEl.setText(
+            typeof message.output === "string" ? message.output : "",
+          );
           break;
         }
         default:
@@ -613,9 +711,11 @@ export class Transcript {
 
     for (const pending of pendingTools) {
       if (!isRecord(pending)) continue;
-      const toolCallId = typeof pending.toolCallId === "string" ? pending.toolCallId : null;
+      const toolCallId =
+        typeof pending.toolCallId === "string" ? pending.toolCallId : null;
       if (!toolCallId) continue;
-      const toolName = typeof pending.toolName === "string" ? pending.toolName : "tool";
+      const toolName =
+        typeof pending.toolName === "string" ? pending.toolName : "tool";
       const block = this.ensureToolBlock(toolCallId, toolName, pending.args);
       block.details.addClass("is-running");
       block.statusEl.setText("running");
@@ -646,9 +746,12 @@ export class Transcript {
       } else if (block.type === "thinking" && this.options.showThinking) {
         const stream = this.openBlock(render, index, "thinking");
         stream.bodyEl.removeClass("oh-stream");
-        stream.bodyEl.setText(typeof block.thinking === "string" ? block.thinking : "");
+        stream.bodyEl.setText(
+          typeof block.thinking === "string" ? block.thinking : "",
+        );
       } else if (block.type === "toolCall") {
-        const toolCallId = typeof block.id === "string" ? block.id : `call-${String(index)}`;
+        const toolCallId =
+          typeof block.id === "string" ? block.id : `call-${String(index)}`;
         const name = typeof block.name === "string" ? block.name : "tool";
         this.ensureToolBlock(toolCallId, name, block.arguments);
       }
@@ -658,9 +761,11 @@ export class Transcript {
   }
 
   private renderStaticToolResult(message: Record<string, unknown>): void {
-    const toolCallId = typeof message.toolCallId === "string" ? message.toolCallId : null;
+    const toolCallId =
+      typeof message.toolCallId === "string" ? message.toolCallId : null;
     if (!toolCallId) return;
-    const toolName = typeof message.toolName === "string" ? message.toolName : "tool";
+    const toolName =
+      typeof message.toolName === "string" ? message.toolName : "tool";
     const block = this.ensureToolBlock(toolCallId, toolName, undefined);
     const isError = message.isError === true;
     block.statusEl.setText(isError ? "error" : "done");
@@ -687,6 +792,7 @@ function describeAnswer(payload: Record<string, unknown>): string {
   if (payload.cancelled === true) return "cancelled";
   const value = payload.value;
   if (typeof value === "boolean") return value ? "yes" : "no";
-  if (typeof value === "string") return value.length > 60 ? `${value.slice(0, 57)}…` : value;
+  if (typeof value === "string")
+    return value.length > 60 ? `${value.slice(0, 57)}…` : value;
   return "answered";
 }

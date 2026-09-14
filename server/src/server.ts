@@ -67,7 +67,9 @@ export class HarnessServer {
       // A tiny health endpoint lets the plugin probe liveness before connecting.
       if (req.url?.startsWith("/health")) {
         res.writeHead(200, { "content-type": "application/json" });
-        res.end(JSON.stringify({ ok: true, sessions: [...this.sessions.keys()] }));
+        res.end(
+          JSON.stringify({ ok: true, sessions: [...this.sessions.keys()] }),
+        );
         return;
       }
       res.writeHead(404).end();
@@ -76,7 +78,9 @@ export class HarnessServer {
     this.wss = new WebSocketServer({ noServer: true });
     this.http.on("upgrade", (req, socket, head) => {
       if (!this.isAuthorized(req)) {
-        this.options.log(`rejected upgrade from ${req.socket.remoteAddress ?? "?"}`);
+        this.options.log(
+          `rejected upgrade from ${req.socket.remoteAddress ?? "?"}`,
+        );
         socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
         socket.destroy();
         return;
@@ -101,7 +105,8 @@ export class HarnessServer {
       entry.session.dispose();
     }
     this.sessions.clear();
-    for (const socket of this.clients.keys()) socket.close(1001, "server shutting down");
+    for (const socket of this.clients.keys())
+      socket.close(1001, "server shutting down");
     this.clients.clear();
     await new Promise<void>((resolve) => this.http.close(() => resolve()));
   }
@@ -126,7 +131,11 @@ export class HarnessServer {
       return false;
     }
     const header = req.headers["authorization"];
-    if (!provided && typeof header === "string" && header.startsWith("Bearer ")) {
+    if (
+      !provided &&
+      typeof header === "string" &&
+      header.startsWith("Bearer ")
+    ) {
       provided = header.slice("Bearer ".length);
     }
     if (!provided) return false;
@@ -156,7 +165,9 @@ export class HarnessServer {
       void this.onClientMessage(socket, raw.toString());
     });
     socket.on("close", () => this.onClientClose(socket));
-    socket.on("error", (err) => this.options.log(`client socket error: ${err.message}`));
+    socket.on("error", (err) =>
+      this.options.log(`client socket error: ${err.message}`),
+    );
   }
 
   private onClientClose(socket: WebSocket): void {
@@ -177,7 +188,10 @@ export class HarnessServer {
 
     const type = messageType(parsed);
     if (!type || !isRecord(parsed)) {
-      this.sendTo(socket, { type: "bridge_error", message: "message needs a string 'type'" });
+      this.sendTo(socket, {
+        type: "bridge_error",
+        message: "message needs a string 'type'",
+      });
       return;
     }
     const id = typeof parsed.id === "string" ? parsed.id : undefined;
@@ -185,7 +199,11 @@ export class HarnessServer {
     // Clients must never be able to impersonate a bridge-internal request and
     // steal a response the server is awaiting.
     if (id?.startsWith(INTERNAL_ID_PREFIX)) {
-      this.sendTo(socket, { type: "bridge_error", id, message: "reserved id prefix" });
+      this.sendTo(socket, {
+        type: "bridge_error",
+        id,
+        message: "reserved id prefix",
+      });
       return;
     }
 
@@ -208,10 +226,16 @@ export class HarnessServer {
   // Attach / detach
   // -------------------------------------------------------------------------
 
-  private async handleAttach(socket: WebSocket, message: Record<string, unknown>): Promise<void> {
+  private async handleAttach(
+    socket: WebSocket,
+    message: Record<string, unknown>,
+  ): Promise<void> {
     const requested = typeof message.cwd === "string" ? message.cwd : null;
     if (!requested) {
-      this.sendTo(socket, { type: "bridge_error", message: "bridge_attach requires 'cwd'" });
+      this.sendTo(socket, {
+        type: "bridge_error",
+        message: "bridge_attach requires 'cwd'",
+      });
       return;
     }
 
@@ -220,7 +244,10 @@ export class HarnessServer {
       key = await realpath(requested);
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err);
-      this.sendTo(socket, { type: "bridge_error", message: `unusable cwd: ${detail}` });
+      this.sendTo(socket, {
+        type: "bridge_error",
+        message: `unusable cwd: ${detail}`,
+      });
       return;
     }
 
@@ -259,7 +286,10 @@ export class HarnessServer {
     await this.sendSnapshot(socket, entry, key, spawned);
   }
 
-  private createSession(key: string, message: Record<string, unknown>): SessionEntry {
+  private createSession(
+    key: string,
+    message: Record<string, unknown>,
+  ): SessionEntry {
     const entry: SessionEntry = {
       clients: new Set(),
       pendingDialogs: new Set(),
@@ -271,7 +301,9 @@ export class HarnessServer {
         name: typeof message.name === "string" ? message.name : undefined,
         onMessage: (piMessage) => this.onPiMessage(key, piMessage),
         onExit: (code, signal) => {
-          this.options.log(`pi exited for ${key} (code=${code} signal=${signal ?? "none"})`);
+          this.options.log(
+            `pi exited for ${key} (code=${code} signal=${signal ?? "none"})`,
+          );
           const dead = this.sessions.get(key);
           if (dead) {
             this.broadcast(key, {
@@ -362,7 +394,12 @@ export class HarnessServer {
     if (entry.idleTimer) clearTimeout(entry.idleTimer);
     entry.session.dispose();
     this.sessions.delete(key);
-    this.broadcast(key, { type: "bridge_status", phase: "exited", cwd: key, detail: "reset" });
+    this.broadcast(key, {
+      type: "bridge_status",
+      phase: "exited",
+      cwd: key,
+      detail: "reset",
+    });
   }
 
   // -------------------------------------------------------------------------
@@ -378,16 +415,28 @@ export class HarnessServer {
     const state = this.clients.get(socket);
     const key = state?.cwd;
     if (!key) {
-      this.sendTo(socket, { type: "bridge_error", id, message: "send bridge_attach first" });
+      this.sendTo(socket, {
+        type: "bridge_error",
+        id,
+        message: "send bridge_attach first",
+      });
       return;
     }
     const entry = this.sessions.get(key);
     if (!entry?.session.isAlive) {
-      this.sendTo(socket, { type: "bridge_error", id, message: "pi session is not running" });
+      this.sendTo(socket, {
+        type: "bridge_error",
+        id,
+        message: "pi session is not running",
+      });
       return;
     }
     if (!FORWARDABLE_COMMANDS.has(type)) {
-      this.sendTo(socket, { type: "bridge_error", id, message: `command not allowed: ${type}` });
+      this.sendTo(socket, {
+        type: "bridge_error",
+        id,
+        message: `command not allowed: ${type}`,
+      });
       return;
     }
 
@@ -429,8 +478,14 @@ export class HarnessServer {
 
     if (blocking && dialogId) {
       if (entry.clients.size === 0) {
-        this.options.log(`auto-cancelling '${method}' dialog for ${key}: no clients attached`);
-        entry.session.send({ type: "extension_ui_response", id: dialogId, cancelled: true });
+        this.options.log(
+          `auto-cancelling '${method}' dialog for ${key}: no clients attached`,
+        );
+        entry.session.send({
+          type: "extension_ui_response",
+          id: dialogId,
+          cancelled: true,
+        });
         return;
       }
       entry.pendingDialogs.add(dialogId);
@@ -439,7 +494,10 @@ export class HarnessServer {
     this.broadcast(key, message);
   }
 
-  private broadcast(key: string, message: ServerMessage | Record<string, unknown>): void {
+  private broadcast(
+    key: string,
+    message: ServerMessage | Record<string, unknown>,
+  ): void {
     const entry = this.sessions.get(key);
     if (!entry) return;
     const payload = JSON.stringify(message);

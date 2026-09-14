@@ -65,13 +65,17 @@ export class HarnessSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Auto-discover server")
-      .setDesc("Read the port and token from the bridge's handshake file (server.json).")
+      .setDesc(
+        "Read the port and token from the bridge's handshake file (server.json).",
+      )
       .addToggle((toggle) =>
-        toggle.setValue(this.plugin.settings.useHandshakeFile).onChange(async (value) => {
-          this.plugin.settings.useHandshakeFile = value;
-          await this.plugin.saveSettings();
-          this.display();
-        }),
+        toggle
+          .setValue(this.plugin.settings.useHandshakeFile)
+          .onChange(async (value) => {
+            this.plugin.settings.useHandshakeFile = value;
+            await this.plugin.saveSettings();
+            this.display();
+          }),
       );
 
     new Setting(containerEl)
@@ -97,15 +101,19 @@ export class HarnessSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Port")
-      .setDesc("Used when auto-discovery is off or the handshake file is missing.")
+      .setDesc(
+        "Used when auto-discovery is off or the handshake file is missing.",
+      )
       .addText((text) =>
-        text.setValue(String(this.plugin.settings.port)).onChange(async (value) => {
-          const port = Number(value);
-          if (Number.isInteger(port) && port > 0 && port < 65536) {
-            this.plugin.settings.port = port;
-            await this.plugin.saveSettings();
-          }
-        }),
+        text
+          .setValue(String(this.plugin.settings.port))
+          .onChange(async (value) => {
+            const port = Number(value);
+            if (Number.isInteger(port) && port > 0 && port < 65536) {
+              this.plugin.settings.port = port;
+              await this.plugin.saveSettings();
+            }
+          }),
       );
 
     new Setting(containerEl)
@@ -126,15 +134,19 @@ export class HarnessSettingTab extends PluginSettingTab {
       .setName("Start server automatically")
       .setDesc("Spawn the bundled bridge server when no server is reachable.")
       .addToggle((toggle) =>
-        toggle.setValue(this.plugin.settings.autoStartServer).onChange(async (value) => {
-          this.plugin.settings.autoStartServer = value;
-          await this.plugin.saveSettings();
-        }),
+        toggle
+          .setValue(this.plugin.settings.autoStartServer)
+          .onChange(async (value) => {
+            this.plugin.settings.autoStartServer = value;
+            await this.plugin.saveSettings();
+          }),
       );
 
     new Setting(containerEl)
       .setName("pi executable")
-      .setDesc("Absolute path is safest — Obsidian's PATH is often not your shell's.")
+      .setDesc(
+        "Absolute path is safest — Obsidian's PATH is often not your shell's.",
+      )
       .addText((text) =>
         text
           .setPlaceholder("pi")
@@ -166,7 +178,8 @@ export class HarnessSettingTab extends PluginSettingTab {
           .addOption("custom", "Custom path")
           .setValue(this.plugin.settings.cwdMode)
           .onChange(async (value) => {
-            this.plugin.settings.cwdMode = value === "custom" ? "custom" : "vault";
+            this.plugin.settings.cwdMode =
+              value === "custom" ? "custom" : "vault";
             await this.plugin.saveSettings();
             this.display();
           }),
@@ -189,7 +202,9 @@ export class HarnessSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Model")
-      .setDesc("Optional provider/id override, applied only when a session starts.")
+      .setDesc(
+        "Optional provider/id override, applied only when a session starts.",
+      )
       .addText((text) =>
         text
           .setPlaceholder("anthropic/claude-sonnet-4-20250514")
@@ -218,17 +233,21 @@ export class HarnessSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl).setName("Show thinking").addToggle((toggle) =>
-      toggle.setValue(this.plugin.settings.showThinking).onChange(async (value) => {
-        this.plugin.settings.showThinking = value;
-        await this.plugin.saveSettings();
-      }),
+      toggle
+        .setValue(this.plugin.settings.showThinking)
+        .onChange(async (value) => {
+          this.plugin.settings.showThinking = value;
+          await this.plugin.saveSettings();
+        }),
     );
 
     new Setting(containerEl).setName("Expand tool calls").addToggle((toggle) =>
-      toggle.setValue(this.plugin.settings.expandTools).onChange(async (value) => {
-        this.plugin.settings.expandTools = value;
-        await this.plugin.saveSettings();
-      }),
+      toggle
+        .setValue(this.plugin.settings.expandTools)
+        .onChange(async (value) => {
+          this.plugin.settings.expandTools = value;
+          await this.plugin.saveSettings();
+        }),
     );
   }
 }

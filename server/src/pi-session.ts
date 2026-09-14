@@ -99,7 +99,8 @@ export class PiSession {
    * is consumed by the bridge and never broadcast to clients.
    */
   request(command: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if (!this.alive) return Promise.reject(new Error("pi session is not running"));
+    if (!this.alive)
+      return Promise.reject(new Error("pi session is not running"));
     const id = `${INTERNAL_ID_PREFIX}${randomUUID()}`;
     return new Promise<Record<string, unknown>>((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -158,12 +159,14 @@ export class PiSession {
   /** Maintain the in-flight tool set used to build attach snapshots. */
   private trackToolLifecycle(message: Record<string, unknown>): void {
     const type = message.type;
-    const toolCallId = typeof message.toolCallId === "string" ? message.toolCallId : null;
+    const toolCallId =
+      typeof message.toolCallId === "string" ? message.toolCallId : null;
 
     if (type === "tool_execution_start" && toolCallId) {
       this.pendingTools.set(toolCallId, {
         toolCallId,
-        toolName: typeof message.toolName === "string" ? message.toolName : "tool",
+        toolName:
+          typeof message.toolName === "string" ? message.toolName : "tool",
         args: message.args,
       });
       return;
@@ -182,7 +185,10 @@ export class PiSession {
     const wasAlive = this.alive;
     this.alive = false;
     const trailing = this.splitter.flush();
-    if (trailing) this.options.onLog(`dropped partial stdout line: ${trailing.slice(0, 200)}`);
+    if (trailing)
+      this.options.onLog(
+        `dropped partial stdout line: ${trailing.slice(0, 200)}`,
+      );
     this.pendingTools.clear();
     this.rejectAllPending(new Error("pi session exited"));
     if (wasAlive) this.options.onExit(code, signal);
