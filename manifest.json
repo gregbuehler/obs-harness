@@ -1,0 +1,9 @@
+{
+  "id": "obs-harness",
+  "name": "Pi Harness",
+  "version": "0.1.0",
+  "minAppVersion": "1.7.2",
+  "description": "Run a pi coding-agent session in an Obsidian panel, via a local bridge server.",
+  "author": "gbuehler",
+  "isDesktopOnly": true
+}
