@@ -16,6 +16,7 @@ import {
   type WorkspaceLeaf,
 } from "obsidian";
 
+import { collectNoteMetadata, formatNoteContext } from "./note-context.js";
 import {
   DEFAULT_SETTINGS,
   HarnessSettingTab,
@@ -138,11 +139,16 @@ export default class HarnessPlugin extends Plugin {
       ? (this.targetEditor()?.getSelection() ?? "")
       : "";
 
-    const lines = [
-      // The agent's cwd is the vault root, so a vault-relative path is directly
-      // readable by pi's own tools.
-      `Context: the note \`${file.path}\`, relative to your working directory.`,
-    ];
+    const lines: string[] = [];
+    if (this.settings.includeNoteMetadata) {
+      // Frontmatter, outline and backlinks cost a few tokens and save pi a read
+      // (or, for backlinks, a vault-wide grep it would probably not attempt).
+      lines.push(formatNoteContext(collectNoteMetadata(this.app, file)));
+    } else {
+      lines.push(
+        `Context: the note \`${file.path}\`, relative to your working directory.`,
+      );
+    }
     if (selection.trim()) {
       lines.push("", "Selected text:", "", fenceCode(selection));
     }

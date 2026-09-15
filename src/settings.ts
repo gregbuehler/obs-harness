@@ -26,6 +26,11 @@ export interface HarnessSettings {
   model: string;
   /** Render assistant thinking blocks. */
   showThinking: boolean;
+  /**
+   * Include the active note's frontmatter, outline, links and backlinks in the
+   * context block, rather than just its path.
+   */
+  includeNoteMetadata: boolean;
   /** Show a timestamp beside each message role. */
   showTimestamps: boolean;
   /** Expand tool call details by default instead of collapsing them. */
@@ -46,6 +51,7 @@ export const DEFAULT_SETTINGS: HarnessSettings = {
   defaultLocation: "right",
   model: "",
   showThinking: true,
+  includeNoteMetadata: true,
   showTimestamps: true,
   expandTools: false,
   cwdMode: "vault",
@@ -214,6 +220,20 @@ export class HarnessSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.model)
           .onChange(async (value) => {
             this.plugin.settings.model = value.trim();
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Include note metadata")
+      .setDesc(
+        "When asking about a note, add its properties, outline, links and backlinks. Backlinks are the one thing pi cannot discover by reading the file.",
+      )
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.includeNoteMetadata)
+          .onChange(async (value) => {
+            this.plugin.settings.includeNoteMetadata = value;
             await this.plugin.saveSettings();
           }),
       );

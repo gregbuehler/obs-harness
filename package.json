@@ -9,8 +9,8 @@
     "dev": "node esbuild.config.mjs",
     "typecheck": "tsc --noEmit",
     "server": "node server.js",
-    "test": "node test/format.mjs && node test/smoke.mjs",
-    "test:format": "node test/format.mjs",
+    "test": "node test/format.mjs && node test/note-context.mjs && node test/smoke.mjs",
+    "test:format": "node test/format.mjs && node test/note-context.mjs",
     "test:live": "node test/live.mjs",
     "install-plugin": "node scripts/install-plugin.mjs"
   },
